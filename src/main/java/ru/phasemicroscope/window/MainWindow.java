@@ -1,6 +1,8 @@
 package ru.phasemicroscope.window;
 
 import com.github.sarxos.webcam.Webcam;
+import org.opencv.core.Mat;
+import ru.phasemicroscope.opencv.ObjectsDetector;
 import ru.phasemicroscope.processing.MinMaxSearcher;
 
 import javax.imageio.ImageIO;
@@ -104,19 +106,22 @@ public class MainWindow
 
     private void onButtonChoseClicked(ActionEvent e)
     {
-        String webcamName = (String) comboBox.getSelectedItem();
-        Webcam webcam = Webcam.getWebcamByName(webcamName);
-        Dimension dimension = new Dimension();
-        dimension.setSize(640, 480);
-        webcam.setViewSize(dimension);
-        webcam.open();
-        if (!webcam.isOpen())
-        {
-            System.out.println("Нет доступа!");
-            return;
-        }
-        BufferedImage image = webcam.getImage();
-        webcam.close();
+//        String webcamName = (String) comboBox.getSelectedItem();
+//        Webcam webcam = Webcam.getWebcamByName(webcamName);
+//        Dimension dimension = new Dimension();
+//        dimension.setSize(640, 480);
+//        webcam.setViewSize(dimension);
+//        webcam.open();
+//        if (!webcam.isOpen())
+//        {
+//            System.out.println("Нет доступа!");
+//            return;
+//        }
+//        BufferedImage image = webcam.getImage();
+//        webcam.close();
+
+        // ==============================
+
 //        BufferedImage image = null;
 //        try
 //        {
@@ -127,9 +132,29 @@ public class MainWindow
 //            throw new RuntimeException(ex);
 //        }
 
-        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
-        minMaxSearcher.drawMinMax(image);
-        render.draw(image);
+        // ======================
+        int webcamIndex = comboBox.getSelectedIndex();
+        ObjectsDetector detector = new ObjectsDetector();
+        try
+        {
+            detector.setVideoCaptureIndex(webcamIndex);
+        }
+        catch (Exception ex)
+        {
+            throw new RuntimeException(ex);
+        }
+
+//        while (true)
+//        {
+            Mat mat = detector.captureFrame();
+            image = detector.convertMatrixToBufferedImage(mat);
+
+
+//        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
+//        minMaxSearcher.drawMinMax(image);
+            render.draw(image);
+//        }
+
     }
 
     public JFrame getFrame()
