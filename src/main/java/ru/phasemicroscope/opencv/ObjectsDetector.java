@@ -1,6 +1,9 @@
 package ru.phasemicroscope.opencv;
 
 import org.opencv.core.*;
+//import org.bytedeco.opencv.opencv_core.Mat;
+import org.opencv.core.Core;
+import org.opencv.core.MatOfRect;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.videoio.VideoCapture;

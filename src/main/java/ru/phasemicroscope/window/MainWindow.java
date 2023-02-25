@@ -1,7 +1,19 @@
 package ru.phasemicroscope.window;
 
 import com.github.sarxos.webcam.Webcam;
+//import org.bytedeco.javacv.Frame;
+//import org.bytedeco.javacv.FrameGrabber;
+//import org.bytedeco.javacv.OpenCVFrameConverter;
+//import org.bytedeco.javacv.OpenCVFrameGrabber;
+//import org.bytedeco.opencv.opencv_core.IplImage;
+//import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.javacv.*;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.opencv.opencv_core.IplImage;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.imgcodecs.Imgcodecs;
+import ru.phasemicroscope.ImageGrabber;
 import ru.phasemicroscope.opencv.ObjectsDetector;
 import ru.phasemicroscope.processing.MinMaxSearcher;
 
@@ -11,14 +23,18 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+
+import static org.bytedeco.opencv.global.opencv_core.cvFlip;
 
 /**
  * Главное окно
  */
-public class MainWindow
+public class MainWindow implements Runnable
 {
     private JFrame frame;   // окно программы
     private int screenWidth = 1200;
@@ -30,6 +46,11 @@ public class MainWindow
 
     private BufferedImage image;    // изображение, которое будет находиться в Label
     private Render render;  // рендер изображения
+
+    final int INTERVAL = 5000;   // интервал съемки кадров
+//    CanvasFrame canvas = new CanvasFrame("Web Cam");
+
+//    ImageGrabber imageGrabber;
 
     public MainWindow()
     {
@@ -59,6 +80,11 @@ public class MainWindow
         Graphics2D graphics = image.createGraphics();
         graphics.setPaint(Color.WHITE);
         graphics.fillRect(0,0, image.getWidth(), image.getHeight());
+
+//        imageGrabber = new ImageGrabber();
+//        Thread th = new Thread(imageGrabber);
+//        th.start();
+//        canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
     }
 
     /**
@@ -132,29 +158,66 @@ public class MainWindow
 //            throw new RuntimeException(ex);
 //        }
 
+
+//        int webcamIndex = comboBox.getSelectedIndex();
+//        ObjectsDetector detector = new ObjectsDetector();
+//        try
+//        {
+//            detector.setVideoCaptureIndex(webcamIndex);
+//        }
+//        catch (Exception ex)
+//        {
+//            throw new RuntimeException(ex);
+//        }
+//
+////        while (true)
+////        {
+//            Mat mat = detector.captureFrame();
+//            image = detector.convertMatrixToBufferedImage(mat);
+//
+//
+////        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
+////        minMaxSearcher.drawMinMax(image);
+//            render.draw(image);
+////        }
+
         // ======================
         int webcamIndex = comboBox.getSelectedIndex();
-        ObjectsDetector detector = new ObjectsDetector();
+        FrameGrabber grabber = new OpenCVFrameGrabber(webcamIndex); // 1 for next camera
+        OpenCVFrameConverter.ToIplImage converter = new OpenCVFrameConverter.ToIplImage();
+        IplImage iplImage;
         try
         {
-            detector.setVideoCaptureIndex(webcamIndex);
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException(ex);
-        }
+            grabber.start();
 
-//        while (true)
-//        {
-            Mat mat = detector.captureFrame();
-            image = detector.convertMatrixToBufferedImage(mat);
+            Frame frame = grabber.grab();
+            iplImage = converter.convert(frame);
+            // захваченный кадр перевернут, поэтому переворачиваем его на 180 градусов, чтобы сделать его правильным
+            cvFlip(iplImage, iplImage, 1);// l-r = 90_degrees_steps_anti_clockwise
 
+            image = IplImageToBufferedImage(iplImage);      // конвертируем изображение
 
-//        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
-//        minMaxSearcher.drawMinMax(image);
+            MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
+            minMaxSearcher.drawMinMax(image);
+
             render.draw(image);
-//        }
 
+            grabber.stop();
+        }
+        catch (FrameGrabber.Exception interruptedException)
+        {
+            interruptedException.printStackTrace();
+        }
+
+//        boolean isGrabbing = imageGrabber.isGrabbing();
+//        imageGrabber.setGrabbing(!isGrabbing);
+    }
+
+    public static BufferedImage IplImageToBufferedImage(IplImage src) {
+        OpenCVFrameConverter.ToIplImage grabberConverter = new OpenCVFrameConverter.ToIplImage();
+        Java2DFrameConverter paintConverter = new Java2DFrameConverter();
+        Frame frame = grabberConverter.convert(src);
+        return paintConverter.getBufferedImage(frame,1);
     }
 
     public JFrame getFrame()
@@ -184,5 +247,11 @@ public class MainWindow
 
     public Render getRender() {
         return render;
+    }
+
+    @Override
+    public void run()
+    {
+        show();
     }
 }
