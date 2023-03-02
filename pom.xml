@@ -51,6 +51,23 @@
             <!--            <version>1.4.2</version>-->
             <version>1.5.8</version>
         </dependency>
+        <!-- Математическая библиотека для FFT -->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.commons</groupId>-->
+<!--            <artifactId>commons-math3</artifactId>-->
+<!--            <version>3.6.1</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.tambapps.fft4j</groupId>-->
+<!--            <artifactId>fft4j</artifactId>-->
+<!--            <version>2.0</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>com.github.wendykierp</groupId>
+            <artifactId>JTransforms</artifactId>
+            <version>3.1</version>
+            <classifier>with-dependencies</classifier>
+        </dependency>
     </dependencies>
 
 </project>
