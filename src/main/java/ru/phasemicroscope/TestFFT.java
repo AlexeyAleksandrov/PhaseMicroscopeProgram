@@ -1,5 +1,9 @@
 package ru.phasemicroscope;
 
+import com.tambapps.fft4j.FastFourier;
+import com.tambapps.fft4j.FastFourier2d;
+import com.tambapps.fft4j.FastFouriers;
+import com.tambapps.fft4j.Signal2d;
 import org.jtransforms.fft.DoubleFFT_2D;
 
 import javax.imageio.ImageIO;
@@ -13,25 +17,52 @@ public class TestFFT
 {
     public static void main(String[] args) throws IOException
     {
-        BufferedImage image = ImageIO.read(new File("src/main/resources/lines2.jpg"));
+        String inputFileName = "src/main/resources/obj5050";
+        String inputFileNFormat = ".jpg";
+        BufferedImage image = ImageIO.read(new File(inputFileName + inputFileNFormat));
 
-        int width = image.getWidth();       // ширина изображения
-        int height = image.getHeight();     // высота изображения
-
+        int n = getMatrixSizeForImage(image);   // считаем размер для матрицы
         double[][] massive = getImageMassive(image);    // получаем массив пикселей
-        double[][] real = new double[width][height];
-        double[][] imag = new double[width][height];
-        double[][] amp = new double[width][height];
+        double[][] real = new double[n][n];
+        double[][] imag = new double[n][n];
+        double[][] amp = new double[n][n];
 
-        twoDfft(massive, real, imag, amp);
+//        twoDfft(massive, real, imag, amp);
+
+        discrete(massive, real, imag);
+
+        Signal2d signal2d = new Signal2d(n, n);
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                signal2d.setReAt(i, j, massive[i][j]);
+            }
+        }
+
+        FastFourier2d transformer2D = new FastFourier2d();
+        transformer2D.transform(signal2d);
+
+        // do some things with the fourier transform
+//        transformer2D.inverse(signal2d);
+
+        // don't forget to shut it down as it uses an executor service
+        transformer2D.shutdown();
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                real[i][j] = signal2d.getReAt(i, j);
+            }
+        }
 //
-//        discrete(massive, real, imag);
-//
-//        setImageFromMassive(massive, image);
+        setImageFromMassive(real, image);
 
 //        fft(image);
 
-        ImageIO.write(image, "jpg", new File("src/main/resources/lines2_out.jpg"));
+        ImageIO.write(image, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
+        System.out.println("Готово!");
     }
 
     public static double[][] getImageMassive(BufferedImage image)
@@ -39,7 +70,9 @@ public class TestFFT
         int width = image.getWidth();       // ширина изображения
         int height = image.getHeight();     // высота изображения
 
-        double[][] massive = new double[width][height];     // создаем массив размера ширина / высота
+        int n = getMatrixSizeForImage(image);   // считаем размер для матрицы
+
+        double[][] massive = new double[n][n];     // создаем массив размера ширина / высота
 
         for (int x = 0; x < width; x++)     // проходим по каждому столбцу
         {
@@ -71,8 +104,8 @@ public class TestFFT
 
     public static void setImageFromMassive(double[][] massive, BufferedImage image)
     {
-        int width = massive.length;
-        int height = massive[0].length;
+        int width = image.getWidth();       // ширина изображения
+        int height = image.getHeight();     // высота изображения
 
         for (int x = 0; x < width; x++)     // проходим по каждому столбцу
         {
@@ -213,7 +246,7 @@ public class TestFFT
         {
             for (int xWave = 0; xWave < width; xWave++)
             {
-                System.out.println("x = " + xWave + " из " + width + " y = "+ yWave + " из " + height);
+                System.out.println("x = " + xWave + " из " + width + " y = "+ yWave + " из " + height + " Обработано: " + Math.round(((double) xWave + (double)yWave * (double)width) / ((double)height * (double)width) * 1000000.0)/10000.0 + " %");
                 // Two inner loops iterate on input data.
                 for (int ySpace = 0; ySpace < height; ySpace++)
                 {
@@ -243,5 +276,24 @@ public class TestFFT
                 }
             }
         }
+    }
+
+    public static int findClosestPowerOf2(int n) {
+        int power = 1;
+        while(power < n) {
+            power *= 2;
+        }
+        return power;
+    }
+
+    public static int getMatrixSizeForImage(BufferedImage image)
+    {
+        int width = image.getWidth();       // ширина изображения
+        int height = image.getHeight();     // высота изображения
+
+        int n = Math.max(width, height);    // размер матрицы = максимальному значению из высоты и ширины
+        n = findClosestPowerOf2(n);     // дополняем размер до ближайшей степени 2
+
+        return n;
     }
 }
