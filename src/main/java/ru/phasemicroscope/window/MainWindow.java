@@ -176,8 +176,8 @@ public class MainWindow implements Runnable
 //            image = detector.convertMatrixToBufferedImage(mat);
 //
 //
-////        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
-////        minMaxSearcher.drawMinMax(image);
+//        MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
+//        minMaxSearcher.drawMinMax(image);
 //            render.draw(image);
 ////        }
 
@@ -209,8 +209,6 @@ public class MainWindow implements Runnable
             interruptedException.printStackTrace();
         }
 
-//        boolean isGrabbing = imageGrabber.isGrabbing();
-//        imageGrabber.setGrabbing(!isGrabbing);
     }
 
     public static BufferedImage IplImageToBufferedImage(IplImage src) {

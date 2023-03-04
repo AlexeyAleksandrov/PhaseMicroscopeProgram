@@ -15,18 +15,21 @@ public class TestFFT
     {
         BufferedImage image = ImageIO.read(new File("src/main/resources/lines2.jpg"));
 
-//        int width = image.getWidth();       // ширина изображения
-//        int height = image.getHeight();     // высота изображения
-//
-//        double[][] massive = getImageMassive(image);    // получаем массив пикселей
-//        double[][] real = new double[width][height];
-//        double[][] imag = new double[width][height];
+        int width = image.getWidth();       // ширина изображения
+        int height = image.getHeight();     // высота изображения
+
+        double[][] massive = getImageMassive(image);    // получаем массив пикселей
+        double[][] real = new double[width][height];
+        double[][] imag = new double[width][height];
+        double[][] amp = new double[width][height];
+
+        twoDfft(massive, real, imag, amp);
 //
 //        discrete(massive, real, imag);
 //
 //        setImageFromMassive(massive, image);
 
-        fft(image);
+//        fft(image);
 
         ImageIO.write(image, "jpg", new File("src/main/resources/lines2_out.jpg"));
     }
@@ -36,7 +39,7 @@ public class TestFFT
         int width = image.getWidth();       // ширина изображения
         int height = image.getHeight();     // высота изображения
 
-        double[][] massive = new double[height][width];     // создаем массив размера ширина / высота
+        double[][] massive = new double[width][height];     // создаем массив размера ширина / высота
 
         for (int x = 0; x < width; x++)     // проходим по каждому столбцу
         {
@@ -59,7 +62,7 @@ public class TestFFT
                 // гамма-сложение и масштабирование до диапазона байтов:
                 double grayLevel = (255.0 * Math.pow(lum, 1.0 / 2.2));
 
-                massive[y][x] = grayLevel;
+                massive[x][y] = grayLevel;
             }
         }
 
@@ -68,8 +71,8 @@ public class TestFFT
 
     public static void setImageFromMassive(double[][] massive, BufferedImage image)
     {
-        int height = massive.length;
-        int width = massive[0].length;
+        int width = massive.length;
+        int height = massive[0].length;
 
         for (int x = 0; x < width; x++)     // проходим по каждому столбцу
         {
@@ -197,5 +200,48 @@ public class TestFFT
         double[][] massive = getImageMassive(image);    // получаем массив пикселей
         fft2D.complexForward(massive);
         setImageFromMassive(massive, image);
+    }
+
+    public static void twoDfft(double[][] inputData, double[][] realOut,
+                               double[][] imagOut, double[][] amplitudeOut)
+    {
+        int height = inputData.length;
+        int width = inputData[0].length;
+
+        // Two outer loops iterate on output data.
+        for (int yWave = 0; yWave < height; yWave++)
+        {
+            for (int xWave = 0; xWave < width; xWave++)
+            {
+                System.out.println("x = " + xWave + " из " + width + " y = "+ yWave + " из " + height);
+                // Two inner loops iterate on input data.
+                for (int ySpace = 0; ySpace < height; ySpace++)
+                {
+                    for (int xSpace = 0; xSpace < width; xSpace++)
+                    {
+                        // Compute real, imag, and ampltude.
+                        realOut[yWave][xWave] += (inputData[ySpace][xSpace] * Math
+                                .cos(2
+                                        * Math.PI
+                                        * ((1.0 * xWave * xSpace / width) + (1.0
+                                        * yWave * ySpace / height))))
+                                / Math.sqrt(width * height);
+                        imagOut[yWave][xWave] -= (inputData[ySpace][xSpace] * Math
+                                .sin(2
+                                        * Math.PI
+                                        * ((1.0 * xWave * xSpace / width) + (1.0
+                                        * yWave * ySpace / height))))
+                                / Math.sqrt(width * height);
+                        amplitudeOut[yWave][xWave] = Math
+                                .sqrt(realOut[yWave][xWave]
+                                        * realOut[yWave][xWave]
+                                        + imagOut[yWave][xWave]
+                                        * imagOut[yWave][xWave]);
+                    }
+//                    System.out.println(realOut[yWave][xWave] + " + "
+//                            + imagOut[yWave][xWave] + " i");
+                }
+            }
+        }
     }
 }
