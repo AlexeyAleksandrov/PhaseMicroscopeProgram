@@ -1,13 +1,10 @@
 package ru.phasemicroscope;
 
-import com.tambapps.fft4j.FastFourier;
 import com.tambapps.fft4j.FastFourier2d;
-import com.tambapps.fft4j.FastFouriers;
 import com.tambapps.fft4j.Signal2d;
 import org.jtransforms.fft.DoubleFFT_2D;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +14,7 @@ public class TestFFT
 {
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/obj5050";
+        String inputFileName = "src/main/resources/obj512";
         String inputFileNFormat = ".jpg";
         BufferedImage image = ImageIO.read(new File(inputFileName + inputFileNFormat));
 
@@ -29,7 +26,7 @@ public class TestFFT
 
 //        twoDfft(massive, real, imag, amp);
 
-        discrete(massive, real, imag);
+//        discrete(massive, real, imag);
 
         Signal2d signal2d = new Signal2d(n, n);
         for (int i = 0; i < n; i++)
@@ -54,10 +51,14 @@ public class TestFFT
             for (int j = 0; j < n; j++)
             {
                 real[i][j] = signal2d.getReAt(i, j);
+                imag[i][j] = signal2d.getImAt(i, j);
+
+                double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(imag[i][j], 2));
+                massive[i][j] = mod_z;
             }
         }
 //
-        setImageFromMassive(real, image);
+        setImageFromMassive(massive, image);
 
 //        fft(image);
 
