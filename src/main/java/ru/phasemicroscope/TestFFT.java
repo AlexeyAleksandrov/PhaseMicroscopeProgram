@@ -8,10 +8,13 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 
 public class TestFFT
 {
+    public static boolean enableCenterReverse = true;   // включить костыль c инверсией изображения относительно центра
+
     public static void main(String[] args) throws IOException
     {
         String inputFileName = "src/main/resources/obj512";
@@ -39,13 +42,10 @@ public class TestFFT
 
         FastFourier2d transformer2D = new FastFourier2d();
         transformer2D.transform(signal2d);
-
-        // do some things with the fourier transform
 //        transformer2D.inverse(signal2d);
-
-        // don't forget to shut it down as it uses an executor service
         transformer2D.shutdown();
 
+        // считаем модуль коплексного числа для каждого пикселя
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
@@ -55,8 +55,60 @@ public class TestFFT
 
                 double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(imag[i][j], 2));
                 massive[i][j] = mod_z;
+//                massive[i][j] = imag[i][j];
             }
         }
+
+        // костыль?
+        if(enableCenterReverse)
+        {
+            double[][] mas_2 = new double[n][n];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    int x = (i <= n/2) ? (n/2 - i) : (3*n/2 - i);
+                    int y = (j <= n/2) ? (n/2 - j) : (3*n/2 - j);
+                    mas_2[i][j] = massive[x][y];
+                }
+            }
+
+            massive = mas_2;
+        }
+
+        // логарифмическое преобразование
+
+        // ищем максимум
+        double max = massive[0][0];
+        double min = massive[0][0];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if(massive[i][j] > max)
+                {
+                    max = massive[i][j];
+                }
+                if(massive[i][j] < min)
+                {
+                    min = massive[i][j];
+                }
+            }
+        }
+
+        double c =  255 / Math.log((1 + max));
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] = c * Math.log(1 + massive[i][j]);
+            }
+        }
+
+        System.out.println("Max = " + max);
+        System.out.println("Min = " + min);
+        System.out.println("C = " + c);
 //
         setImageFromMassive(massive, image);
 
