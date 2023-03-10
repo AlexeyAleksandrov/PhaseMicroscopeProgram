@@ -14,10 +14,11 @@ import java.util.Arrays;
 public class TestFFT
 {
     public static boolean enableCenterReverse = true;   // включить костыль c инверсией изображения относительно центра
+    public static boolean enableLogarithmicScale = true;
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/obj512";
+        String inputFileName = "src/main/resources/img[1]-2";
         String inputFileNFormat = ".jpg";
         BufferedImage image = ImageIO.read(new File(inputFileName + inputFileNFormat));
 
@@ -45,71 +46,113 @@ public class TestFFT
 //        transformer2D.inverse(signal2d);
         transformer2D.shutdown();
 
-        // считаем модуль коплексного числа для каждого пикселя
+        // вытаскиваем действительную и мнимую часть
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
             {
                 real[i][j] = signal2d.getReAt(i, j);
                 imag[i][j] = signal2d.getImAt(i, j);
-
-                double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(imag[i][j], 2));
-                massive[i][j] = mod_z;
-//                massive[i][j] = imag[i][j];
             }
         }
 
         // костыль?
         if(enableCenterReverse)
         {
-            double[][] mas_2 = new double[n][n];
+            double[][] mas_real = new double[n][n];
+            double[][] mas_im = new double[n][n];
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < n; j++)
                 {
                     int x = (i <= n/2) ? (n/2 - i) : (3*n/2 - i);
                     int y = (j <= n/2) ? (n/2 - j) : (3*n/2 - j);
-                    mas_2[i][j] = massive[x][y];
+                    mas_real[i][j] = real[x][y];
+                    mas_im[i][j] = imag[x][y];
                 }
             }
 
-            massive = mas_2;
+            real = mas_real;
+            imag = mas_im;
         }
 
-        // логарифмическое преобразование
+        if(enableLogarithmicScale)
+        {
+            // считаем модуль коплексного числа для каждого пикселя
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(imag[i][j], 2));
+                    massive[i][j] = mod_z;
+                }
+            }
 
-        // ищем максимум
-        double max = massive[0][0];
-        double min = massive[0][0];
+            // логарифмическое преобразование
+            logarithmicScale(massive, n);
+        }
+
+        // заполняем левую половину нулями
+        for (int x = 0; x < n/2-1; x++)
+        {
+            for (int y = 0; y < n; y++)
+            {
+                real[x][y] = 0.0;
+                imag[x][y] = 0.0;
+            }
+        }
+
+        // обратное FFT
+        signal2d = new Signal2d(n, n);
+        transformer2D = new FastFourier2d();
+
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
             {
-                if(massive[i][j] > max)
-                {
-                    max = massive[i][j];
-                }
-                if(massive[i][j] < min)
-                {
-                    min = massive[i][j];
-                }
+                signal2d.setReAt(i, j, massive[i][j]);
             }
         }
 
-        double c =  255 / Math.log((1 + max));
+        transformer2D.inverse(signal2d);
+        transformer2D.shutdown();
 
+        // вытаскиваем действительную и мнимую часть
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
             {
-                massive[i][j] = c * Math.log(1 + massive[i][j]);
+                real[i][j] = signal2d.getReAt(i, j);
+                imag[i][j] = signal2d.getImAt(i, j);
             }
         }
 
-        System.out.println("Max = " + max);
-        System.out.println("Min = " + min);
-        System.out.println("C = " + c);
+//        // делим мнимую часть на действительную
+//        for (int i = 0; i < n; i++)
+//        {
+//            for (int j = 0; j < n; j++)
+//            {
+//                massive[i][j] = imag[i][j] / real[i][j];
+//            }
+//        }
 //
+//        // считаем арктангенс
+//        // делим мнимую часть на действительную
+//        for (int i = 0; i < n; i++)
+//        {
+//            for (int j = 0; j < n; j++)
+//            {
+//                massive[i][j] = Math.atan(massive[i][j]);
+//            }
+//        }
+
+        massive = real;
+        logarithmicScale(massive, n);
+
+
+        System.out.println(Arrays.deepToString(massive));
+
+        // вывод в файл
         setImageFromMassive(massive, image);
 
 //        fft(image);
@@ -348,5 +391,40 @@ public class TestFFT
         n = findClosestPowerOf2(n);     // дополняем размер до ближайшей степени 2
 
         return n;
+    }
+
+    public static void logarithmicScale(double[][] massive, int n)
+    {
+        // ищем максимум
+        double max = massive[0][0];
+        double min = massive[0][0];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if(massive[i][j] > max)
+                {
+                    max = massive[i][j];
+                }
+                if(massive[i][j] < min)
+                {
+                    min = massive[i][j];
+                }
+            }
+        }
+
+        double c =  255 / Math.log10((1 + max));
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] = c * Math.log10(1 + massive[i][j] * Math.signum(massive[i][j]));
+            }
+        }
+
+//        System.out.println("Max = " + max);
+//        System.out.println("Min = " + min);
+//        System.out.println("C = " + c);
     }
 }
