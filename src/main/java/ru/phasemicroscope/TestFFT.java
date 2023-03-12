@@ -18,7 +18,7 @@ public class TestFFT
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/obj5050";
+        String inputFileName = "src/main/resources/img[1]-2";
         String inputFileNFormat = ".jpg";
         BufferedImage image = ImageIO.read(new File(inputFileName + inputFileNFormat));
 
@@ -38,7 +38,7 @@ public class TestFFT
             for (int j = 0; j < n; j++)
             {
                 signal2d.setReAt(i, j, massive[i][j]);
-                signal2d.setImAt(i, j, 0.0);
+                signal2d.setImAt(i, j, massive[i][j]);
             }
         }
 
@@ -89,8 +89,8 @@ public class TestFFT
                 }
             }
 
-            // логарифмическое преобразование
-            logarithmicScale(massive, n);
+//            // логарифмическое преобразование
+//            logarithmicScale(massive, n);
         }
 
         // заполняем левую половину нулями
