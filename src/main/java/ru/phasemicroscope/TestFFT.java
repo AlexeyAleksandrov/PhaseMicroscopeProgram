@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils;
 import org.bytedeco.opencv.presets.opencv_core;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.Arrays;
@@ -18,10 +19,16 @@ public class TestFFT
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/Interferogramma-1";
-        String inputFileNFormat = ".jpg";
+        String inputFileName = "src/main/resources/Interferogramma";
+        String inputFileNFormat = ".bmp";
         String imagePath = inputFileName + inputFileNFormat;
         BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
+
+        BufferedImage img2 = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D graphics = img2.createGraphics();
+        graphics.drawImage(bufferedImage, null, 0, 0);
+
+        bufferedImage = img2;
 
         int n = getMatrixSizeForImage(bufferedImage);   // считаем размер для матрицы
         double[][] massive = getImageMassive(bufferedImage);    // получаем массив пикселей
@@ -203,11 +210,66 @@ public class TestFFT
 
         writeMassiveToFile(massive, n, inputFileName + "_atan.txt");
 
+        // перевод в ангстремы
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                double waveLength = 6328;
+                massive[i][j] = (massive[i][j] * waveLength) / (4 * Math.PI);
+            }
+        }
+
+        writeMassiveToFile(massive, n, inputFileName + "_angstrem.txt");
+
+//        massive = phaseUnwrap(massive);
+//
+//        writeMassiveToFile(massive, n, inputFileName + "_unwrapped.txt");
+
+        // нормализация
+        double min = massive[0][0];
+        double max = massive[0][0];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if(min < massive[i][j])
+                {
+                    min = massive[i][j];
+                }
+                if(max > massive[i][j])
+                {
+                    max = massive[i][j];
+                }
+            }
+        }
+
+        // производим нормализацию
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] = (massive[i][j] - min) / (max - min);
+            }
+        }
+
+        writeMassiveToFile(massive, n, inputFileName + "_normalized.txt");
+
+        // конвертируем нормализованное значение в 0 - 255
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] *= 255;
+            }
+        }
+
 //        massive = phaseUnwrap(massive);
 
 //        massive = image;
 //        massive = image;
-        logarithmicScale(massive, n);
+//        logarithmicScale(massive, n);
+
 
 
 //        System.out.println(Arrays.deepToString(massive));
@@ -238,11 +300,17 @@ public class TestFFT
             {
                 int rgb = image.getRGB(x, y);   // получаем RGB значения пикселя
 
-                int r = (rgb >> 16) & 0xFF;
-                int g = (rgb >> 8) & 0xFF;
-                int b = (rgb & 0xFF);
+                float r = new Color(rgb).getRed();
+                float g = new Color(rgb).getGreen();
+                float b = new Color(rgb).getBlue();
+                int grayScaled = (int)(r+g+b)/3;
 
-                massive[x][y] = getGrayScaleLevelFromRGB(r, g, b);
+//                int r = (rgb >> 16) & 0xFF;
+//                int g = (rgb >> 8) & 0xFF;
+//                int b = (rgb & 0xFF);
+//
+//                massive[x][y] = getGrayScaleLevelFromRGB(r, g, b);
+                massive[x][y] = grayScaled;
             }
         }
 
@@ -423,9 +491,11 @@ public class TestFFT
 
         double[][] unwrappedPhase = new double[height][width];
 
+        System.out.println("step 1");
 // Step 1: Compute phase of image
 // Phase computation code here
 
+        System.out.println("step 2");
 // Step 2: Normalize phase to [-0.5, 0.5]
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
@@ -438,9 +508,11 @@ public class TestFFT
             }
         }
 
+        System.out.println("step 3-5");
 // Step 3-5: Unwrap phase
         boolean isUnwrapped = false;
         while (!isUnwrapped) {
+            System.out.println("image not unwrapped!");
             isUnwrapped = true;
             for (int i = 1; i < height - 1; i++) {
                 for (int j = 1; j < width - 1; j++) {
@@ -464,12 +536,14 @@ public class TestFFT
             }
         }
 
+        System.out.println("step 6");
 // Step 6: Multiply phase by 2*pi
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 unwrappedPhase[i][j] *= (2 * Math.PI);
             }
         }
+        System.out.println("--");
 
         return unwrappedPhase;
     }
