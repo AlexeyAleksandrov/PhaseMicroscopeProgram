@@ -2,35 +2,39 @@ package ru.phasemicroscope;
 
 import com.tambapps.fft4j.FastFourier2d;
 import com.tambapps.fft4j.Signal2d;
+import org.apache.commons.io.FileUtils;
+import org.bytedeco.opencv.presets.opencv_core;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 
 
 public class TestFFT
 {
-    public static boolean enableCenterReverse = true;   // включить костыль с инверсией изображения относительно центра
+    public static boolean enableCenterReverse = false;   // включить костыль с инверсией изображения относительно центра
     public static boolean enableLogarithmicScale = true;    // логарифмическое масштабирование для модуля значений пикселей после развёртки
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/img[1]-2";
+        String inputFileName = "src/main/resources/Interferogramma-1";
         String inputFileNFormat = ".jpg";
-        BufferedImage image = ImageIO.read(new File(inputFileName + inputFileNFormat));
+        String imagePath = inputFileName + inputFileNFormat;
+        BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
 
-        int n = getMatrixSizeForImage(image);   // считаем размер для матрицы
-        double[][] massive = getImageMassive(image);    // получаем массив пикселей
+        int n = getMatrixSizeForImage(bufferedImage);   // считаем размер для матрицы
+        double[][] massive = getImageMassive(bufferedImage);    // получаем массив пикселей
         double[][] real = new double[n][n];
-        double[][] imag = new double[n][n];
+        double[][] image = new double[n][n];
         double[][] amp = new double[n][n];
 
-//        twoDfft(massive, real, imag, amp);
+        massive = readTextImage("src/main/resources/Interferogramma_text.txt");
 
-//        discrete(massive, real, imag);
+
+//        twoDfft(massive, real, image, amp);
+
+//        discrete(massive, real, image);
 
         Signal2d signal2d = new Signal2d(n, n);
         for (int i = 0; i < n; i++)
@@ -38,9 +42,12 @@ public class TestFFT
             for (int j = 0; j < n; j++)
             {
                 signal2d.setReAt(i, j, massive[i][j]);
-                signal2d.setImAt(i, j, massive[i][j]);
+                signal2d.setImAt(i, j, 0.0);
             }
         }
+
+        writeMassiveToFile(massive, n, inputFileName + "_real_start.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_start.txt");
 
         FastFourier2d transformer2D = new FastFourier2d();
         transformer2D.transform(signal2d);
@@ -53,56 +60,75 @@ public class TestFFT
             for (int j = 0; j < n; j++)
             {
                 real[i][j] = signal2d.getReAt(i, j);
-                imag[i][j] = signal2d.getImAt(i, j);
+                image[i][j] = signal2d.getImAt(i, j);
             }
         }
 
-        // костыль?
-        if(enableCenterReverse)
-        {
-            double[][] mas_real = new double[n][n];
-            double[][] mas_im = new double[n][n];
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = 0; j < n; j++)
-                {
-                    int x = (i <= n/2) ? (n/2 - i) : (3*n/2 - i);
-                    int y = (j <= n/2) ? (n/2 - j) : (3*n/2 - j);
-                    mas_real[i][j] = real[x][y];
-                    mas_im[i][j] = imag[x][y];
-                }
-            }
+        writeMassiveToFile(real, n, inputFileName + "_real_after_FFT.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_after_FFT.txt");
 
-            real = mas_real;
-            imag = mas_im;
-        }
+//        shiftImage(real, image);    // шифтинг
 
-        if(enableLogarithmicScale)
-        {
-            // считаем модуль комплексного числа для каждого пикселя
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = 0; j < n; j++)
-                {
-                    double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(imag[i][j], 2));
-                    massive[i][j] = mod_z;
-                }
-            }
+        writeMassiveToFile(real, n, inputFileName + "_real_shifting_before_mask.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_shifting_before_mask.txt");
 
-//            // логарифмическое преобразование
-//            logarithmicScale(massive, n);
-        }
+//        // костыль?
+//        if(enableCenterReverse)
+//        {
+//            double[][] mas_real = new double[n][n];
+//            double[][] mas_im = new double[n][n];
+//            for (int i = 0; i < n; i++)
+//            {
+//                for (int j = 0; j < n; j++)
+//                {
+//                    int x = (i <= n/2) ? (n/2 - i) : (3*n/2 - i);
+//                    int y = (j <= n/2) ? (n/2 - j) : (3*n/2 - j);
+//                    mas_real[i][j] = real[x][y];
+//                    mas_im[i][j] = image[x][y];
+//                }
+//            }
+//
+//            real = mas_real;
+//            image = mas_im;
+//        }
+
+//        if(enableLogarithmicScale)
+//        {
+//            // считаем модуль комплексного числа для каждого пикселя
+//            for (int i = 0; i < n; i++)
+//            {
+//                for (int j = 0; j < n; j++)
+//                {
+//                    double mod_z = Math.sqrt(Math.pow(real[i][j], 2) + Math.pow(image[i][j], 2));
+//                    massive[i][j] = mod_z;
+//                }
+//            }
+//
+////            // логарифмическое преобразование
+////            logarithmicScale(massive, n);
+//        }
 
         // заполняем левую половину нулями
-        final double grayscale = 215;
+        final double grayscale = 0;
         for (int x = 0; x < n/2; x++)
         {
             for (int y = 0; y < n; y++)
             {
                 real[x][y] = grayscale;
-                imag[x][y] = grayscale;
+                image[x][y] = grayscale;
             }
         }
+
+        writeMassiveToFile(real, n, inputFileName + "_real_after_mask.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_after_mask.txt");
+
+//        shiftImage(real, image);
+
+        writeMassiveToFile(real, n, inputFileName + "_real_shifting_after_mask.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_shifting_after_mask.txt");
+
+//        real = readTextImage("src/main/resources/Complex of Interferogramma REAL.txt");
+//        image = readTextImage("src/main/resources/Complex of Interferogramma IMAGINARY.txt");
 
         // обратное FFT
         for (int x = 0; x < n; x++)
@@ -110,7 +136,7 @@ public class TestFFT
             for (int y = 0; y < n; y++)
             {
                 signal2d.setReAt(x, y, real[x][y]);
-                signal2d.setImAt(x, y, imag[x][y]);
+                signal2d.setImAt(x, y, image[x][y]);
             }
         }
 
@@ -123,24 +149,34 @@ public class TestFFT
             for (int j = 0; j < n; j++)
             {
                 real[i][j] = signal2d.getReAt(i, j);
-                imag[i][j] = signal2d.getImAt(i, j);
+                image[i][j] = signal2d.getImAt(i, j);
 
 //                real[i][j] = Math.atan(real[i][j]);
-//                imag[i][j] = Math.atan(imag[i][j]);
+//                image[i][j] = Math.atan(image[i][j]);
             }
         }
+
+        writeMassiveToFile(real, n, inputFileName + "_real_after_inverse.txt");
+        writeMassiveToFile(image, n, inputFileName + "_image_after_inverse.txt");
+
+//        real = readTextImage("src/main/resources/Real.txt");
+//        image = readTextImage("src/main/resources/Imaginary.txt");
 
         // делим мнимую часть на действительную
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
             {
-                massive[i][j] = imag[i][j] / real[i][j];
+                massive[i][j] = image[i][j] / real[i][j];
             }
         }
 
-//        massive = real;
-//        logarithmicScale(massive, n);
+        writeMassiveToFile(massive, n, inputFileName + "_after_divide.txt");
+//
+////        massive = real;
+////        logarithmicScale(massive, n);
+//
+//        massive = readTextImage("src/main/resources/Result of Imaginary_befire_atan.txt");
 
         // считаем арктангенс
         for (int i = 0; i < n; i++)
@@ -150,25 +186,38 @@ public class TestFFT
                 massive[i][j] = Math.atan(massive[i][j]);
             }
         }
+//
+////        massive = image;
+//
+//        try(FileWriter fileWriter = new FileWriter(new File(inputFileName + "_data.txt")))
+//        {
+//            for (int i = 0; i < n; i++)
+//            {
+//                for (int j = 0; j < n; j++)
+//                {
+//                    fileWriter.write(Double.toString(massive[i][j]) + "\t");
+//                }
+//                fileWriter.write("\r\n");
+//            }
+//        }
 
-//        massive = imag;
+        writeMassiveToFile(massive, n, inputFileName + "_atan.txt");
 
-        try(FileWriter fileWriter = new FileWriter(new File(inputFileName + "_data.txt")))
-        {
-            fileWriter.write(Arrays.deepToString(massive));
-        }
+//        massive = phaseUnwrap(massive);
 
+//        massive = image;
+//        massive = image;
         logarithmicScale(massive, n);
 
 
-        System.out.println(Arrays.deepToString(massive));
+//        System.out.println(Arrays.deepToString(massive));
 
         // вывод в файл
-        setImageFromMassive(massive, image);
+        setImageFromMassive(massive, bufferedImage);
 
-//        fft(image);
+//        fft(bufferedImage);
 
-        ImageIO.write(image, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
+        ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
         System.out.println("Готово!");
 
 //        System.out.println("atan = " + Math.atan(81.09530240723115));
@@ -211,8 +260,9 @@ public class TestFFT
         // рассчитываем яркость:
         float lum = (float) (0.2126 * rr + 0.7152 * gg + 0.0722 * bb);
 
+
         // гамма-сложение и масштабирование до диапазона байтов:
-        return (255.0 * Math.pow(lum, 1.0 / 2.2));  // возвращаем значение градации серого
+       return (255.0 * Math.pow(lum, 1.0 / 2.2));  // возвращаем значение градации серого
     }
 
     public static void setImageFromMassive(double[][] massive, BufferedImage image)
@@ -234,6 +284,32 @@ public class TestFFT
 
                 int gray = (grayLevel << 16) + (grayLevel << 8) + grayLevel;
                 image.setRGB(x, y, gray);   // перерисовываем пиксель в градации серого
+            }
+        }
+    }
+
+    public static void shiftImage(double[][] real, double[][] image)
+    {
+        int n = real.length;
+        double[][] mas_real = new double[n][n];
+        double[][] mas_im = new double[n][n];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                int x = (i <= n/2) ? (n/2 - i) : (3*n/2 - i);
+                int y = (j <= n/2) ? (n/2 - j) : (3*n/2 - j);
+                mas_real[i][j] = real[x][y];
+                mas_im[i][j] = image[x][y];
+            }
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                real[i][j] = mas_real[i][j];
+                image[i][j] = mas_im[i][j];
             }
         }
     }
@@ -338,6 +414,112 @@ public class TestFFT
                 }
                 System.out.println("x = " + xWave + " y = " + yWave + "Re = " + realOut[yWave][xWave] + " Im = " + imagOut[yWave][xWave] + " Amp = " + amplitudeOut[yWave][xWave]);
             }
+        }
+    }
+
+    public static double[][] phaseUnwrap(double[][] phase) {
+        int height = phase.length;
+        int width = phase[0].length;
+
+        double[][] unwrappedPhase = new double[height][width];
+
+// Step 1: Compute phase of image
+// Phase computation code here
+
+// Step 2: Normalize phase to [-0.5, 0.5]
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                unwrappedPhase[i][j] = phase[i][j] / (2 * Math.PI);
+                if (unwrappedPhase[i][j] > 0.5) {
+                    unwrappedPhase[i][j] -= 1;
+                } else if (unwrappedPhase[i][j] < -0.5) {
+                    unwrappedPhase[i][j] += 1;
+                }
+            }
+        }
+
+// Step 3-5: Unwrap phase
+        boolean isUnwrapped = false;
+        while (!isUnwrapped) {
+            isUnwrapped = true;
+            for (int i = 1; i < height - 1; i++) {
+                for (int j = 1; j < width - 1; j++) {
+                    double diff1 = unwrappedPhase[i][j] - unwrappedPhase[i-1][j];
+                    double diff2 = unwrappedPhase[i][j] - unwrappedPhase[i][j-1];
+                    if (diff1 > Math.PI) {
+                        unwrappedPhase[i-1][j] += 1;
+                        isUnwrapped = false;
+                    } else if (diff1 < -Math.PI) {
+                        unwrappedPhase[i-1][j] -= 1;
+                        isUnwrapped = false;
+                    }
+                    if (diff2 > Math.PI) {
+                        unwrappedPhase[i][j-1] += 1;
+                        isUnwrapped = false;
+                    } else if (diff2 < -Math.PI) {
+                        unwrappedPhase[i][j-1] -= 1;
+                        isUnwrapped = false;
+                    }
+                }
+            }
+        }
+
+// Step 6: Multiply phase by 2*pi
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                unwrappedPhase[i][j] *= (2 * Math.PI);
+            }
+        }
+
+        return unwrappedPhase;
+    }
+
+    public static double[][] readTextImage(String fileName)
+    {
+        double[][] massive = null;
+        File file = new File(fileName);
+        try
+        {
+            String content = FileUtils.readFileToString(file);  // считываем файл
+
+            String[] lines = content.split("\r\n");
+            int n = lines.length;       // размер массива
+
+            massive = new double[n][n];
+            for (int i = 0; i < lines.length; i++)      // проходим по строкам
+            {
+                String line = lines[i];     // берем строку
+                String[] values = line.split("\t");     // делим на значения
+                for (int j = 0; j < values.length; j++)     // перебираем все значения в строке
+                {
+                    massive[j][i] = Double.parseDouble(values[j]);      // записываем значение в массив
+                }
+            }
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+
+        return massive;
+    }
+
+    public static void writeMassiveToFile(double[][] massive, int n, String fileName)
+    {
+        try(FileWriter fileWriter = new FileWriter(new File(fileName)))
+        {
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    fileWriter.write(Double.toString(massive[i][j]) + "\t");
+                }
+                fileWriter.write("\r\n");
+            }
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 }
