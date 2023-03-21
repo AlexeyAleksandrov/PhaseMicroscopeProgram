@@ -4,10 +4,14 @@ import com.tambapps.fft4j.FastFourier2d;
 import com.tambapps.fft4j.Signal2d;
 import org.apache.commons.io.FileUtils;
 import org.bytedeco.opencv.presets.opencv_core;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.*;
 import java.util.Arrays;
 
@@ -22,13 +26,29 @@ public class TestFFT
         String inputFileName = "src/main/resources/Interferogramma";
         String inputFileNFormat = ".bmp";
         String imagePath = inputFileName + inputFileNFormat;
-        BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
+//        BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
 
-        BufferedImage img2 = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D graphics = img2.createGraphics();
-        graphics.drawImage(bufferedImage, null, 0, 0);
+//        BufferedImage img2 = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+//        Graphics2D graphics = img2.createGraphics();
+//        graphics.drawImage(bufferedImage, null, 0, 0);
+//
+//        bufferedImage = img2;
 
-        bufferedImage = img2;
+        // OpenCV загрузка изображения
+        // =======================================================
+        //Loading the OpenCV core library
+        System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
+
+        //Instantiating the Imagecodecs class
+        Imgcodecs imageCodecs = new Imgcodecs();
+
+        //Reading the Image from the file
+        Mat matrix = imageCodecs.imread(imagePath);
+
+        BufferedImage bufferedImage = convertMatrixToBufferedImage(matrix);
+
+        System.out.println("Image Loaded");
+        // =======================================================
 
         int n = getMatrixSizeForImage(bufferedImage);   // считаем размер для матрицы
         double[][] massive = getImageMassive(bufferedImage);    // получаем массив пикселей
@@ -36,8 +56,7 @@ public class TestFFT
         double[][] image = new double[n][n];
         double[][] amp = new double[n][n];
 
-        massive = readTextImage("src/main/resources/Interferogramma_text.txt");
-
+//        massive = readTextImage("src/main/resources/Interferogramma_text.txt");
 
 //        twoDfft(massive, real, image, amp);
 
@@ -595,5 +614,26 @@ public class TestFFT
         {
             throw new RuntimeException(e);
         }
+    }
+
+    /** Конвертация матрицы в изображение
+     * @param imageMatrix матрица изображения
+     * @return изображение
+     */
+    public static BufferedImage convertMatrixToBufferedImage(Mat imageMatrix)      // создаем изображение из матрицы
+    {
+        BufferedImage image = new BufferedImage(imageMatrix.width(), imageMatrix.height(), BufferedImage.TYPE_3BYTE_BGR);
+        convertMatrixToBufferedImage(imageMatrix, image);
+        return  image;
+    }
+
+    /** Конвертация матрицы в изображение
+     * @param imageMatrix матрица изображения
+     * @param image результирующее изображение
+     */
+    public static void convertMatrixToBufferedImage(Mat imageMatrix, BufferedImage image)      // создаем изображение из матрицы
+    {
+        byte[] data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        imageMatrix.get(0, 0, data);
     }
 }
