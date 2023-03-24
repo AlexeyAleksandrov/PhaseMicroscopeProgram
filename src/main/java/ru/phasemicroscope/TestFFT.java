@@ -235,6 +235,35 @@ public class TestFFT
 
         writeMassiveToFile(massive, n, inputFileName + "_atan.txt");
 
+        // ПОИСК MIN, MAX
+        // нормализация
+        double search_min = massive[0][0];
+        double search_max = massive[0][0];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if(search_min < massive[i][j])
+                {
+                    search_min = massive[i][j];
+                }
+                if(search_max > massive[i][j])
+                {
+                    search_max = massive[i][j];
+                }
+            }
+        }
+
+        System.out.println("Min: " + search_min);
+        System.out.println("Max: " + search_max);
+
+        massive = readTextImage("src/main/resources/Result of Imaginary.txt");
+
+        unwrapMassive(massive, n);
+//        massive = phaseUnwrap(massive);
+
+        writeMassiveToFile(massive, n, inputFileName + "_unwrapped.txt");
+
         // перевод в ангстремы
         for (int i = 0; i < n; i++)
         {
@@ -281,6 +310,7 @@ public class TestFFT
         writeMassiveToFile(massive, n, inputFileName + "_normalized.txt");
 
         massive = phaseUnwrap(massive);
+
 
         // конвертируем нормализованное значение в 0 - 255
         for (int i = 0; i < n; i++)
@@ -711,5 +741,44 @@ public class TestFFT
         unwrapped[n-1] = massive[n-1] + (2 * Math.PI * k);
 
         return unwrapped;
+    }
+
+    public static void unwrapMassive(double[][] massive, int n)
+    {
+        // развёртка по Y
+        for (int y = 1; y < n-1; y++)
+        {
+            double[] row = new double[n];    // создаём стобец
+
+            for (int x = 0; x < n; x++)     // заполняем столбец
+            {
+                row[x] = massive[x][y];
+            }
+
+            row = unwrap2(row);   // выполняем развёртку столбца
+
+            for (int x = 0; x < n; x++)     // заполняем матрицу
+            {
+                massive[x][y] = row[x];
+            }
+        }
+
+        // развёртка по X
+        for (int x = 1; x < n-1; x++)
+        {
+            double[] column = new double[n];    // создаём стобец
+
+            for (int y = 0; y < n; y++)
+            {
+                column[y] = massive[x][y];
+            }
+
+            column = unwrap2(column);
+
+            for (int y = 0; y < n; y++)
+            {
+                massive[x][y] = column[y];
+            }
+        }
     }
 }
