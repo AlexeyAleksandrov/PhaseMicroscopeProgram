@@ -29,8 +29,8 @@ public class TestFFT
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/Interferogramma";
-        String inputFileNFormat = ".bmp";
+        String inputFileName = "src/main/resources/img[1]-2";
+        String inputFileNFormat = ".jpg";
         String imagePath = inputFileName + inputFileNFormat;
 //        BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
 
@@ -235,32 +235,73 @@ public class TestFFT
 
         writeMassiveToFile(massive, n, inputFileName + "_atan.txt");
 
-        // ПОИСК MIN, MAX
-        // нормализация
-        double search_min = massive[0][0];
-        double search_max = massive[0][0];
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                if(search_min < massive[i][j])
-                {
-                    search_min = massive[i][j];
-                }
-                if(search_max > massive[i][j])
-                {
-                    search_max = massive[i][j];
-                }
-            }
-        }
 
-        System.out.println("Min: " + search_min);
-        System.out.println("Max: " + search_max);
+//        // ========================
+//
+        normalize(massive);
+        denormalize(massive, -1 * Math.PI, Math.PI);
+//        writeMassiveToFile(massive, n, inputFileName + "_atan_normal.txt");
+//
+//        // ========================
 
-        massive = readTextImage("src/main/resources/Result of Imaginary.txt");
+//        double[][] massive_phase_data = readTextImage("src/main/resources/Phase_data.txt");
+//        // ПОИСК MIN, MAX
+//        // нормализация
+//        double search_min = massive_phase_data[0][0];
+//        double search_max = massive_phase_data[0][0];
+//        for (int i = 0; i < n; i++)
+//        {
+//            for (int j = 0; j < n; j++)
+//            {
+//                if(search_min < massive_phase_data[i][j])
+//                {
+//                    search_min = massive_phase_data[i][j];
+//                }
+//                if(search_max > massive_phase_data[i][j])
+//                {
+//                    search_max = massive_phase_data[i][j];
+//                }
+//            }
+//        }
+//
+//        System.out.println("Min: " + search_min);
+//        System.out.println("Max: " + search_max);
+
+
+
+//        // ========================
+//
+//        normalize(massive_phase_data);
+//        writeMassiveToFile(massive_phase_data, n, inputFileName + "Phase_data_normal.txt");
+//
+//        double[][] div_mas = new double[n][n];
+//
+//        for (int i = 0; i < n; i++)
+//        {
+//            for (int j = 0; j < n; j++)
+//            {
+//                div_mas[i][j] = massive_phase_data[i][j] / massive[i][j];
+//            }
+//        }
+//
+//        writeMassiveToFile(div_mas, n, inputFileName + "_div_mas.txt");
+
+        // ========================
+
+//        massive = massive_phase_data;
+
+//        normalize(massive);
+
+//        for (int i = 0; i < n; i++)
+//        {
+//            for (int j = 0; j < n; j++)
+//            {
+//                massive[i][j] *= 0.8;
+//            }
+//        }
 
         unwrapMassive(massive, n);
-//        massive = phaseUnwrap(massive);
+//       massive = phaseUnwrap(massive);
 
         writeMassiveToFile(massive, n, inputFileName + "_unwrapped.txt");
 
@@ -280,36 +321,11 @@ public class TestFFT
         //   Mat unwrappedPhase = Core.unwrapPhase(massive);
 //        writeMassiveToFile(massive, n, inputFileName + "_unwrapped.txt");
 
-        // нормализация
-        double min = massive[0][0];
-        double max = massive[0][0];
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                if(min < massive[i][j])
-                {
-                    min = massive[i][j];
-                }
-                if(max > massive[i][j])
-                {
-                    max = massive[i][j];
-                }
-            }
-        }
-
-        // производим нормализацию
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                massive[i][j] = (massive[i][j] - min) / (max - min);
-            }
-        }
+        normalize(massive);
 
         writeMassiveToFile(massive, n, inputFileName + "_normalized.txt");
 
-        massive = phaseUnwrap(massive);
+//        massive = phaseUnwrap(massive);
 
 
         // конвертируем нормализованное значение в 0 - 255
@@ -538,49 +554,49 @@ public class TestFFT
 //        System.out.println("C = " + c);
     }
 
-    public static void twoDfft(double[][] inputData, double[][] realOut,
-                               double[][] imagOut, double[][] amplitudeOut)
-    {
-        int height = inputData.length;
-        int width = inputData[0].length;
-
-        // Two outer loops iterate on output data.
-        for (int yWave = 0; yWave < height; yWave++)
-        {
-            for (int xWave = 0; xWave < width; xWave++)
-            {
-                System.out.println("x = " + xWave + " из " + width + " y = "+ yWave + " из " + height + " Обработано: " + Math.round(((double) xWave + (double)yWave * (double)width) / ((double)height * (double)width) * 1000000.0)/10000.0 + " %");
-                // Two inner loops iterate on input data.
-                for (int ySpace = 0; ySpace < height; ySpace++)
-                {
-                    for (int xSpace = 0; xSpace < width; xSpace++)
-                    {
-                        // Compute real, imag, and ampltude.
-                        realOut[yWave][xWave] += (inputData[ySpace][xSpace] * Math
-                                .cos(2
-                                        * Math.PI
-                                        * ((1.0 * xWave * xSpace / width) + (1.0
-                                        * yWave * ySpace / height))))
-                                / Math.sqrt(width * height);
-                        imagOut[yWave][xWave] -= (inputData[ySpace][xSpace] * Math
-                                .sin(2
-                                        * Math.PI
-                                        * ((1.0 * xWave * xSpace / width) + (1.0
-                                        * yWave * ySpace / height))))
-                                / Math.sqrt(width * height);
-                        amplitudeOut[yWave][xWave] = Math
-                                .sqrt(realOut[yWave][xWave]
-                                        * realOut[yWave][xWave]
-                                        + imagOut[yWave][xWave]
-                                        * imagOut[yWave][xWave]);
-                    }
-                    //                    System.out.println(realOut[yWave][xWave] + " + "
-                    //                            + imagOut[yWave][xWave] + " i");
-                }
-                System.out.println("x = " + xWave + " y = " + yWave + "Re = " + realOut[yWave][xWave] + " Im = " + imagOut[yWave][xWave] + " Amp = " + amplitudeOut[yWave][xWave]);
-            }
-        }
-    }
+//    public static void twoDfft(double[][] inputData, double[][] realOut,
+//                               double[][] imagOut, double[][] amplitudeOut)
+//    {
+//        int height = inputData.length;
+//        int width = inputData[0].length;
+//
+//        // Two outer loops iterate on output data.
+//        for (int yWave = 0; yWave < height; yWave++)
+//        {
+//            for (int xWave = 0; xWave < width; xWave++)
+//            {
+//                System.out.println("x = " + xWave + " из " + width + " y = "+ yWave + " из " + height + " Обработано: " + Math.round(((double) xWave + (double)yWave * (double)width) / ((double)height * (double)width) * 1000000.0)/10000.0 + " %");
+//                // Two inner loops iterate on input data.
+//                for (int ySpace = 0; ySpace < height; ySpace++)
+//                {
+//                    for (int xSpace = 0; xSpace < width; xSpace++)
+//                    {
+//                        // Compute real, imag, and ampltude.
+//                        realOut[yWave][xWave] += (inputData[ySpace][xSpace] * Math
+//                                .cos(2
+//                                        * Math.PI
+//                                        * ((1.0 * xWave * xSpace / width) + (1.0
+//                                        * yWave * ySpace / height))))
+//                                / Math.sqrt(width * height);
+//                        imagOut[yWave][xWave] -= (inputData[ySpace][xSpace] * Math
+//                                .sin(2
+//                                        * Math.PI
+//                                        * ((1.0 * xWave * xSpace / width) + (1.0
+//                                        * yWave * ySpace / height))))
+//                                / Math.sqrt(width * height);
+//                        amplitudeOut[yWave][xWave] = Math
+//                                .sqrt(realOut[yWave][xWave]
+//                                        * realOut[yWave][xWave]
+//                                        + imagOut[yWave][xWave]
+//                                        * imagOut[yWave][xWave]);
+//                    }
+//                    //                    System.out.println(realOut[yWave][xWave] + " + "
+//                    //                            + imagOut[yWave][xWave] + " i");
+//                }
+//                System.out.println("x = " + xWave + " y = " + yWave + "Re = " + realOut[yWave][xWave] + " Im = " + imagOut[yWave][xWave] + " Amp = " + amplitudeOut[yWave][xWave]);
+//            }
+//        }
+//    }
 
     public static double[][] phaseUnwrap(double[][] phase) {
         int height = phase.length;
@@ -778,6 +794,51 @@ public class TestFFT
             for (int y = 0; y < n; y++)
             {
                 massive[x][y] = column[y];
+            }
+        }
+    }
+
+    public static void normalize(double[][] massive)
+    {
+        int n = massive.length;
+
+        // нормализация
+        double min = massive[0][0];
+        double max = massive[0][0];
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if(min < massive[i][j])
+                {
+                    min = massive[i][j];
+                }
+                if(max > massive[i][j])
+                {
+                    max = massive[i][j];
+                }
+            }
+        }
+
+        // производим нормализацию
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] = (massive[i][j] - min) / (max - min);
+            }
+        }
+    }
+
+    public static void denormalize(double[][] massive, double min, double max)
+    {
+        int n = massive.length;
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                massive[i][j] = massive[i][j] * (max - min) + min;
             }
         }
     }
