@@ -13,7 +13,13 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.*;
+
+// из кода от чатбота
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
 import java.util.Arrays;
+
 
 
 public class TestFFT
@@ -242,7 +248,7 @@ public class TestFFT
         writeMassiveToFile(massive, n, inputFileName + "_angstrem.txt");
 
 //        massive = phaseUnwrap(massive);
-//
+        //   Mat unwrappedPhase = Core.unwrapPhase(massive);
 //        writeMassiveToFile(massive, n, inputFileName + "_unwrapped.txt");
 
         // нормализация
@@ -274,6 +280,8 @@ public class TestFFT
 
         writeMassiveToFile(massive, n, inputFileName + "_normalized.txt");
 
+        massive = phaseUnwrap(massive);
+
         // конвертируем нормализованное значение в 0 - 255
         for (int i = 0; i < n; i++)
         {
@@ -282,6 +290,8 @@ public class TestFFT
                 massive[i][j] *= 255;
             }
         }
+
+
 
 //        massive = phaseUnwrap(massive);
 
@@ -304,6 +314,44 @@ public class TestFFT
 //        System.out.println("atan = " + Math.atan(81.09530240723115));
     }
 
+
+//    public class unwrapPhaseMap (double phase,double Uphase)
+//     {
+//        public static void main(String[] args) {
+//            System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+//
+//            Mat phase = Mat.zeros(5, 5, CvType.CV_32FC1);
+//            phase.put(0, 0, 2.0f);
+//            phase.put(0, 1, 2.1f);
+//            phase.put(0, 2, 1.9f);
+//            phase.put(0, 3, -3.0f);
+//            phase.put(0, 4, -2.7f);
+//            phase.put(1, 0, -2.7f);
+//            phase.put(1, 1, -3.0f);
+//            phase.put(1, 2, 2.0f);
+//            phase.put(1, 3, 2.1f);
+//            phase.put(1, 4, 1.9f);
+//            phase.put(2, 0, 1.9f);
+//            phase.put(2, 1, -2.7f);
+//            phase.put(2, 2, -3.0f);
+//            phase.put(2, 3, 2.0f);
+//            phase.put(2, 4, 2.1f);
+//            phase.put(3, 0, 2.1f);
+//            phase.put(3, 1, 1.9f);
+//            phase.put(3, 2, -2.7f);
+//            phase.put(3, 3, -3.0f);
+//            phase.put(3, 4, 2.0f);
+//            phase.put(4, 0, -3.0f);
+//            phase.put(4, 1, 2.0f);
+//            phase.put(4, 2, 2.1f);
+//            phase.put(4, 3, 1.9f);
+//            phase.put(4, 4, -2.7f);
+//
+//            Mat unwrappedPhase =
+//            System.out.println(phase.dump());
+//            System.out.println(unwrappedPhase.dump());
+//        }
+//    }
     public static double[][] getImageMassive(BufferedImage image)
     {
         int width = image.getWidth();       // ширина изображения
@@ -635,5 +683,33 @@ public class TestFFT
     {
         byte[] data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
         imageMatrix.get(0, 0, data);
+    }
+
+    public static double[] unwrap2(double[] massive)
+    {
+        int k = 0;
+        int n = massive.length;
+
+        double[] unwrapped = new double[n];
+
+        for (int i = 1; i < (n-1); i++)
+        {
+            unwrapped[i] = massive[i] + (2 * Math.PI * k);
+            if(Math.abs(massive[i+1] - massive[i]) > Math.PI)
+            {
+                if(massive[i+1] < massive[i])
+                {
+                    k++;
+                }
+                else
+                {
+                    k--;
+                }
+            }
+        }
+
+        unwrapped[n-1] = massive[n-1] + (2 * Math.PI * k);
+
+        return unwrapped;
     }
 }

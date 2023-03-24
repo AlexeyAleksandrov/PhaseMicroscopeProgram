@@ -190,24 +190,33 @@ public class MainWindow implements Runnable
         {
             grabber.start();
 
-            Frame frame = grabber.grab();
-            iplImage = converter.convert(frame);
-            // захваченный кадр перевернут, поэтому переворачиваем его на 180 градусов, чтобы сделать его правильным
-            cvFlip(iplImage, iplImage, 1);// l-r = 90_degrees_steps_anti_clockwise
+            while(true)
+            {
+                Frame frame = grabber.grab();
+                iplImage = converter.convert(frame);
+                // захваченный кадр перевернут, поэтому переворачиваем его на 180 градусов, чтобы сделать его правильным
+                cvFlip(iplImage, iplImage, 1);// l-r = 90_degrees_steps_anti_clockwise
 
-            image = IplImageToBufferedImage(iplImage);      // конвертируем изображение
+                image = IplImageToBufferedImage(iplImage);      // конвертируем изображение
 
-            MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
-            minMaxSearcher.drawMinMax(image);
+//            MinMaxSearcher minMaxSearcher = new MinMaxSearcher();
+//            minMaxSearcher.drawMinMax(image);
 
-            render.draw(image);
+                render.draw(image);
 
-            grabber.stop();
+//            grabber.stop();
+
+                Thread.sleep(500);
+            }
+
+//            grabber.stop();
+
         }
-        catch (FrameGrabber.Exception interruptedException)
+        catch (FrameGrabber.Exception | InterruptedException interruptedException)
         {
             interruptedException.printStackTrace();
         }
+
 
     }
 
