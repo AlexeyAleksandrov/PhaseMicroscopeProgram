@@ -29,7 +29,7 @@ public class TestFFT
 
     public static void main(String[] args) throws IOException
     {
-        String inputFileName = "src/main/resources/img[1]-2";
+        String inputFileName = "C:\\Users\\Cytoscan\\Desktop\\filter\\img[1]-2_filter";
         String inputFileNFormat = ".jpg";
         String imagePath = inputFileName + inputFileNFormat;
 //        BufferedImage bufferedImage = ImageIO.read(new File(imagePath));
@@ -735,13 +735,14 @@ public class TestFFT
     {
         int k = 0;
         int n = massive.length;
+        double c = 0.85;
 
         double[] unwrapped = new double[n];
 
         for (int i = 1; i < (n-1); i++)
         {
             unwrapped[i] = massive[i] + (2 * Math.PI * k);
-            if(Math.abs(massive[i+1] - massive[i]) > Math.PI)
+            if(Math.abs(massive[i+1] - massive[i]) > (Math.PI * c))
             {
                 if(massive[i+1] < massive[i])
                 {
