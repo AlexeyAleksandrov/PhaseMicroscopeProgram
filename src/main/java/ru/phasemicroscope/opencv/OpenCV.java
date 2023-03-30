@@ -14,14 +14,14 @@ import java.awt.image.DataBufferByte;
 /**
  * Обработчик OpenCV для обнаружения объектов
  */
-public class ObjectsDetector
+public class OpenCV
 {
     private static final String cascadeClassifierXMLFileName = "src/main/resources/face.xml";
 
     private int videoCaptureIndex = -1;  // номер камеры
     private VideoCapture capture;   // камера
 
-    public ObjectsDetector()
+    public OpenCV()
     {
         // загружаем библиотеку OpenCV core
         System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
