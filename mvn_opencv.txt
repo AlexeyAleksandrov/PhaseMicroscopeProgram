@@ -1,1 +1,3 @@
 mvn deploy:deploy-file -Durl=file:./lib -Dfile=lib/opencv-460.jar -DgroupId=org.opencv -DartifactId=opencv-460 -Dpackaging=jar -Dversion=1.0-SNAPSHOT
+
+mvn install:install-file -Dfile=lib/opencv-460.jar -DgroupId=org.opencv -DartifactId=opencv-460_locale -Dversion=1.0 -Dpackaging=jar
