@@ -31,7 +31,7 @@ public class PhaseMicroscopeTools
         //Loading the OpenCV core library
         System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
 
-        String inputFileName = "src/main/resources/img[1]-2";
+        String inputFileName = "src/main/resources/filter/Interferogramma-2";
         String inputFileNFormat = ".jpg";
         String imagePath = inputFileName + inputFileNFormat;
 
@@ -72,7 +72,7 @@ public class PhaseMicroscopeTools
         tools.normalizeTo(massive, -Math.PI, Math.PI);
 
         // делаем развёртку
-        tools.unwrapMassive(massive, n);
+        tools.unwrapMassive(massive);
 
         // переводим в ангстремы
         tools.convertToAngstroms(massive, waveLength);
@@ -81,6 +81,7 @@ public class PhaseMicroscopeTools
         tools.deleteTrend(massive);
 
         // вывод в файл
+        System.out.println("wh: " + massive.length + " " + massive[0].length);
         BufferedImage bufferedImage = new BufferedImage(massive.length, massive[0].length, BufferedImage.TYPE_3BYTE_BGR);
         setImageFromMassive(massive, bufferedImage);
 
@@ -319,9 +320,9 @@ public class PhaseMicroscopeTools
         int width = image.getWidth();       // ширина изображения
         int height = image.getHeight();     // высота изображения
 
-        int n = getMatrixSizeForImage(image);   // считаем размер для матрицы
+//        int n = getMatrixSizeForImage(image);   // считаем размер для матрицы
 
-        double[][] massive = new double[n][n];     // создаем массив размера ширина / высота
+        double[][] massive = new double[width][height];     // создаем массив размера ширина / высота
 
         for (int x = 0; x < width; x++)     // проходим по каждому столбцу
         {
@@ -661,7 +662,7 @@ public class PhaseMicroscopeTools
         return unwrapped;
     }
 
-    public void unwrapMassive(double[][] massive, int n)
+    public void unwrapMassive(double[][] massive)
     {
         int width = massive.length;
         int height = massive[0].length;
@@ -731,8 +732,9 @@ public class PhaseMicroscopeTools
 
     public static void normalize(double[][] massive)
     {
-        int n = massive.length;
-        normalize(massive, 0, 0, n, n);
+        int width = massive.length;
+        int height = massive[0].length;
+        normalize(massive, 0, 0, width, height);
     }
 
     public static void normalize(double[][] massive, int start_i, int start_j, int end_i, int end_j)
@@ -789,11 +791,11 @@ public class PhaseMicroscopeTools
 
     public static void denormalize(double[][] massive, double min, double max)
     {
-        int n = massive.length;
+//        int n = massive.length;
 
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < massive.length; i++)
         {
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < massive[i].length; j++)
             {
                 massive[i][j] = massive[i][j] * (max - min) + min;
             }
@@ -1095,13 +1097,13 @@ public class PhaseMicroscopeTools
         // зануляем граничные значения
         for (int i = 0; i < massive.length; i++)
         {
-            massive[0][i] = 0;      // верхняя горизонтальная линия
-            massive[massive.length-1][i] = 0;    // нижняя горизонтальная линия
+            massive[i][0] = 0;      // левая вертикальная линия
+            massive[i][massive[0].length-1] = 0;    // правая вертикальная линия
         }
         for (int j = 0; j < massive[0].length; j++)
         {
-            massive[j][0] = 0;      // левая вертикальная линия
-            massive[j][massive[0].length-1] = 0;    // правая вертикальная линия
+            massive[0][j] = 0;      // верхняя горизонтальная линия
+            massive[massive.length-1][j] = 0;    // нижняя горизонтальная линия
         }
     }
 }
