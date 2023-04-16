@@ -7,7 +7,6 @@ import ru.phasemicroscope.opencv.OpenCV;
 import ru.phasemicroscope.window.MainWindow;
 import ru.phasemicroscope.window.Render;
 
-
 import java.awt.image.BufferedImage;
 
 public class Application
@@ -19,21 +18,52 @@ public class Application
 
         BufferedImage image = mainWindow.getImage();    // главное изображение
         Render render = new Render(image, mainWindow.getFrame());   // рендер
+        mainWindow.setRender(render);
 
-        OpenCV openCV = new OpenCV();     // обнаружение лиц
-        openCV.setVideoCaptureIndex(0);   // задаем номер камеры = 0
-
-        Mat matrix = openCV.captureFrame();   // делаем снимок с камеры
-        BufferedImage img = openCV.convertMatrixToBufferedImage(matrix);    // конвертируем в изображение
-
-        render.draw(img);  // рисуем
-
-        // рисуем постоянно видеопоток
-        while(mainWindow.isVisible())
+        Thread appThread = new Thread(() ->
         {
-            openCV.captureFrame(matrix);   // делаем снимок с камеры
-            openCV.convertMatrixToBufferedImage(matrix, img);   // конвертируем в изображение
-            render.draw(img);  // рисуем
-        }
+            OpenCV openCV = new OpenCV();
+            try
+            {
+                openCV.setVideoCaptureIndex(0);   // задаем номер камеры = 0
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+            Mat matrix = openCV.captureFrame();   // делаем снимок с камеры
+            BufferedImage img = openCV.convertMatrixToBufferedImage(matrix);    // конвертируем в изображение
+
+            //        render.draw(img);  // рисуем
+
+            // рисуем постоянно видеопоток
+            while(mainWindow.isVisible())
+            {
+                PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+                if(mainWindow.isVideoRunning)   // если видео должно идти
+                {
+                    openCV.captureFrame(matrix);   // делаем снимок с камеры
+                    openCV.convertMatrixToBufferedImage(matrix, img);   // конвертируем в изображение
+
+                    tools.processImage(img);  // обрабатываем изображение
+
+                    render.draw(img);  // рисуем
+                }
+
+                // делаем задержку
+                try
+                {
+                    Thread.sleep(17);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        appThread.start();  // запускаем поток для камеры
     }
 }

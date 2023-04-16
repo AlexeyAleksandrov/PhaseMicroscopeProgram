@@ -26,25 +26,37 @@ public class PhaseMicroscopeTools
 //    double[][] real = null;
 //    double[][] image = null;
 
-    public static void main(String[] args) throws IOException
+//    public static void main(String[] args) throws IOException
+//    {
+//        //Loading the OpenCV core library
+//        System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
+//
+//        String inputFileName = "src/main/resources/filter/Interferogramma-2";
+//        String inputFileNFormat = ".jpg";
+//        String imagePath = inputFileName + inputFileNFormat;
+//
+//        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+//
+//        // работаем с изображением
+//        // загружаем изображение
+//        BufferedImage bufferedImage = tools.loadImage(imagePath);   // загружаем изображение
+//
+//        // обрабатываем изображение
+//        tools.processImage(bufferedImage);
+//
+//        ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
+//        System.out.println("Готово!");
+//    }
+
+    public void processImage(BufferedImage bufferedImage)
     {
-        //Loading the OpenCV core library
-        System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
-
-        String inputFileName = "src/main/resources/filter/Interferogramma-2";
-        String inputFileNFormat = ".jpg";
-        String imagePath = inputFileName + inputFileNFormat;
-
         double[][] massive = null;
         double[][] real = null;
         double[][] image = null;
 
         PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
-        tools.onStart();
 
-        // работаем с изображением
-        // загружаем изображение
-        massive = tools.loadImage(imagePath);     // получаем массив пикселей изображения
+        massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
         int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
 
         real = new double[n][n];
@@ -81,12 +93,8 @@ public class PhaseMicroscopeTools
         tools.deleteTrend(massive);
 
         // вывод в файл
-        System.out.println("wh: " + massive.length + " " + massive[0].length);
-        BufferedImage bufferedImage = new BufferedImage(massive.length, massive[0].length, BufferedImage.TYPE_3BYTE_BGR);
+//        System.out.println("wh: " + massive.length + " " + massive[0].length);
         setImageFromMassive(massive, bufferedImage);
-
-        ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
-        System.out.println("Готово!");
     }
 
     public void onStart() throws IOException
@@ -295,7 +303,7 @@ public class PhaseMicroscopeTools
 //        System.out.println("Готово!");
     }
 
-    public double[][] loadImage(String imagePath)
+    public BufferedImage loadImage(String imagePath)
     {
         // OpenCV загрузка изображения
         // =======================================================
@@ -312,10 +320,10 @@ public class PhaseMicroscopeTools
         // =======================================================
 
 //        int n = getMatrixSizeForImage(bufferedImage);   // считаем размер для матрицы
-        return getImageMassive(bufferedImage);
+        return bufferedImage;
     }
 
-    public static double[][] getImageMassive(BufferedImage image)
+    public double[][] getImageMassive(BufferedImage image)
     {
         int width = image.getWidth();       // ширина изображения
         int height = image.getHeight();     // высота изображения
@@ -757,7 +765,7 @@ public class PhaseMicroscopeTools
             }
         }
 
-        System.out.println("min = " + min + "  max = " + max);
+//        System.out.println("min = " + min + "  max = " + max);
 
         // производим нормализацию
         for (int i = start_i; i < end_i; i++)

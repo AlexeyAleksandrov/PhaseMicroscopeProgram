@@ -1,8 +1,14 @@
 package ru.phasemicroscope.window;
 
+import ru.phasemicroscope.PhaseMicroscopeTools;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Главное окно
@@ -15,6 +21,8 @@ public class MainWindow
     private int screenHeight = 800;
 
     private BufferedImage image;    // изображение, которое будет находиться в Label
+
+    private Render render;
 
     public MainWindow()
     {
@@ -59,10 +67,32 @@ public class MainWindow
         ImageIcon imageIcon = new ImageIcon(image);
         JLabel imageLabel = new JLabel(imageIcon);
 
+        // кнопка изображение
+        JButton buttonImage = new JButton("Изображение");
+        buttonImage.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                on_buttonImage_clicked();   // при нажатии вызываем функцию обработки изображения
+            }
+        });
+
+        // кнопка видеопоток
+        JButton buttonVideo = new JButton("Видеопоток");
+        buttonVideo.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                ob_buttonVideo_clicked();   // при нажатии вызываем функцию обработки видео
+            }
+        });
+
         // layout - чтобы элементы не расползались
         BorderLayout borderLayout = new BorderLayout();
         Container mainWindow = frame.getContentPane();      // получаем область контента
         mainWindow.setLayout(borderLayout);                 // задаем layout
+        mainWindow.add(buttonImage, BorderLayout.BEFORE_LINE_BEGINS);   // добавляем кнопку обработки изображения
+        mainWindow.add(buttonVideo, BorderLayout.AFTER_LINE_ENDS);      // добавляем кнопку обработки видеопотока
         mainWindow.add(imageLabel, BorderLayout.CENTER);    // задаем расположение по центру
 
         // отображаем окно
@@ -93,5 +123,65 @@ public class MainWindow
     public boolean isVisible()
     {
         return frame.isVisible();
+    }
+
+    public void on_buttonImage_clicked()
+    {
+        init();     // сбрасываем кадр, чтобы был белый фон
+        render.draw(image);     // рисуем пустое изображение
+
+        String inputFileName = "src/main/resources/filter/Interferogramma";
+        String inputFileNFormat = ".bmp";
+        String imagePath = inputFileName + inputFileNFormat;
+
+        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+        // работаем с изображением
+        // загружаем изображение
+        BufferedImage bufferedImage = tools.loadImage(imagePath);   // загружаем изображение
+
+        // обрабатываем изображение
+        tools.processImage(bufferedImage);
+
+        try
+        {
+            ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        render.draw(bufferedImage);
+//        System.out.println("Готово!");
+    }
+
+    public boolean isVideoRunning = false;
+
+    public void ob_buttonVideo_clicked()
+    {
+        init();     // сбрасываем кадр, чтобы был белый фон
+        render.draw(image);     // рисуем пустое изображение
+
+        if(!isVideoRunning)
+        {
+            System.out.println("Запуск видеопотока");
+            isVideoRunning = true;
+        }
+        else
+        {
+            System.out.println("Остановка видеопотока");
+            isVideoRunning = false;
+        }
+    }
+
+    public Render getRender()
+    {
+        return render;
+    }
+
+    public void setRender(Render render)
+    {
+        this.render = render;
     }
 }
