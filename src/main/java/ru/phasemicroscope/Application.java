@@ -2,7 +2,6 @@ package ru.phasemicroscope;
 
 
 import org.opencv.core.Mat;
-import org.opencv.objdetect.CascadeClassifier;
 import ru.phasemicroscope.opencv.OpenCV;
 import ru.phasemicroscope.window.MainWindow;
 import ru.phasemicroscope.window.Render;
@@ -47,7 +46,10 @@ public class Application
                     openCV.captureFrame(matrix);   // делаем снимок с камеры
                     openCV.convertMatrixToBufferedImage(matrix, img);   // конвертируем в изображение
 
-                    tools.processImage(img);  // обрабатываем изображение
+                    if(!mainWindow.showVideoOriginal)   // если не надо показывать оригинал
+                    {
+                        tools.processImage(img);  // обрабатываем изображение
+                    }
 
                     render.draw(img);  // рисуем
                 }

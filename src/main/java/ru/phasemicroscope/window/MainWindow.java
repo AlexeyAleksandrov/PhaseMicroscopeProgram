@@ -4,6 +4,8 @@ import ru.phasemicroscope.PhaseMicroscopeTools;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -87,6 +89,16 @@ public class MainWindow
             }
         });
 
+        // переключатель видео
+        JCheckBox checkBoxVideo = new JCheckBox("Показать оригинал");
+        checkBoxVideo.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                on_checkBoxVideo_clicked();
+            }
+        });
+
         // layout - чтобы элементы не расползались
         BorderLayout borderLayout = new BorderLayout();
         Container mainWindow = frame.getContentPane();      // получаем область контента
@@ -94,6 +106,7 @@ public class MainWindow
         mainWindow.add(buttonImage, BorderLayout.BEFORE_LINE_BEGINS);   // добавляем кнопку обработки изображения
         mainWindow.add(buttonVideo, BorderLayout.AFTER_LINE_ENDS);      // добавляем кнопку обработки видеопотока
         mainWindow.add(imageLabel, BorderLayout.CENTER);    // задаем расположение по центру
+        mainWindow.add(checkBoxVideo, BorderLayout.AFTER_LAST_LINE);      // добавляем переключатель режима видео
 
         // отображаем окно
         frame.setSize(image.getWidth(), image.getHeight());
@@ -173,6 +186,13 @@ public class MainWindow
             System.out.println("Остановка видеопотока");
             isVideoRunning = false;
         }
+    }
+
+    public boolean showVideoOriginal = false;
+
+    public void on_checkBoxVideo_clicked()
+    {
+        showVideoOriginal = !showVideoOriginal;
     }
 
     public Render getRender()
