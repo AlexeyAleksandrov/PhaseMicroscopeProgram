@@ -6,12 +6,19 @@ import org.apache.commons.io.FileUtils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import ru.phasemicroscope.opencv.OpenCV;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.*;
+import java.util.Arrays;
+
+import static org.opencv.imgproc.Imgproc.medianBlur;
+import static ru.phasemicroscope.window.MainWindow.*;
 
 // из кода от чатбота
 
@@ -20,13 +27,15 @@ public class PhaseMicroscopeTools
 {
     public static boolean enableCenterReverse = false;   // включить костыль с инверсией изображения относительно центра
     public static boolean enableLogarithmicScale = true;    // логарифмическое масштабирование для модуля значений пикселей после развёртки
-    public static final double waveLength = 6328;
+    public static int waveLength = 7920;
+
+    //  public static final double Trash_hold = 0.6;
 
 //    double[][] massive = null;
 //    double[][] real = null;
 //    double[][] image = null;
 
-//    public static void main(String[] args) throws IOException
+    //    public static void main(String[] args) throws IOException
 //    {
 //        //Loading the OpenCV core library
 //        System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
@@ -47,21 +56,42 @@ public class PhaseMicroscopeTools
 //        ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
 //        System.out.println("Готово!");
 //    }
+    public static int loopsUnwrapCount=50;    // кол-во циклов развёртки
+    public static  int loopsDeleteTrendCount = 4;
 
-    public void processImage(BufferedImage bufferedImage)
+    public void processImage(BufferedImage bufferedImage, boolean inversePixels) // стандарт с разверткой, без нормализации на длину волны
     {
+//        for (int i=1;i==4;i++)
+//        {
+        //System.out.println("Длина волны - " + waveLength);
         double[][] massive = null;
         double[][] real = null;
         double[][] image = null;
 
+
         PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
 
         massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
-        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
 
+//        int nn = 255;
+//        massive = new double[nn][nn];
+//        for (int i = 0; i < nn; i++)
+//        {
+//            for (int j = 0; j < nn; j++)
+//            {
+//                massive[i][j] = massiveImg[i][j];
+//            }
+//        }
+
+        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
+//        System.out.println("размер матрицы!"+ n + n);
         real = new double[n][n];
         image = new double[n][n];
 
+
+//          //  massive=
+//        }
+        //tools.writeMassiveToFile(massive, "src/main/resources/ConvertImg.txt");
         // переводим массив изображения в комплексный вид
         tools.convertToComplex(massive, real, image);   // делаем из массива изображения массив комплексных чисел
 
@@ -77,24 +107,397 @@ public class PhaseMicroscopeTools
         // делим мнимую часть на действительную
         tools.divideImageToReal(real, image, massive);
 
+
         // считаем арктангенс
         tools.atan(massive);
+        // tools.writeMassiveToFile(massive, "src/main/resources/image_atan_out.txt");    // записываем текстовый файл
+
 
         // нормализуем изображение к значениям от -PI до +PI
         tools.normalizeTo(massive, -Math.PI, Math.PI);
 
         // делаем развёртку
-        tools.unwrapMassive(massive);
+        tools.unwrapMassive(massive, loopsUnwrapCount);
+
+
+        //   удаляем тренд
+        // tools.deleteTrend(massive, loopsDeleteTrendCount);
+        tools.deleteTrend3D(massive);
+        tools.normalizeTo(massive, 0, 255); //нужно проверить надобность
+
+        if (inversePixels)
+        {
+            tools.inversePixelGrayScale(massive);
+        }
+
+//        if (medianF)
+//        {
+//            tools.medianFilter(massive, 20);
+//        }
+//        tools.medianFilter(massive, 2);
+
+//        Imgproc.medianBlur(massive, matrix, 5);
+//           переводим в ангстремы
+//            tools.convertToAngstroms(massive, waveLength);   // нужно переделать удаление тренда, появляются проблемы тут из-за этого
+
+        // tools.writeMassiveToFile(massive, "src/main/resources/Final.txt");
+        // вывод в файл
+//        System.out.println("wh: " + massive.length + " " + massive[0].length);
+        setImageFromMassive(massive, bufferedImage);        // из массива создаем изображение
+
+        if (medianF)
+        {
+            tools.medianFilter(bufferedImage, medianCount);
+        }
+    }
+
+    public void medianFilter(BufferedImage bufferedImage, int radius)
+    {
+        OpenCV openCV = new OpenCV();
+        Mat mat = openCV.bufferedImageToMat(bufferedImage);     // изображение преобразовываем в матрицу
+        Mat filtered = new Mat();
+
+        medianBlur(mat, filtered, radius);   // применяем фильтр, 5 - размер окна фильтра
+
+        openCV.convertMatrixToBufferedImage(filtered, bufferedImage);   // создаем из матрицы изображение после фильтрации
+    }
+
+    public void medianFilter(double[][] massive, int radius)
+    {
+        for (int i = radius; i < massive.length - radius; i++)
+        {
+            for (int j = radius; j < massive[i].length - radius; j++)
+            {
+                // формируем массив вокруг пикселя
+                int size = (radius*2+1)*(radius*2+1);
+                double[] mas = new double[size];
+
+                int c = 0;
+                for (int k = i-radius; k <= i+radius; k++)
+                {
+                    for (int l = j-radius; l <= j+radius; l++)
+                    {
+                        mas[c] = massive[k][l];
+                        c++;
+                    }
+                }
+
+                // сортируем массив
+                Arrays.sort(mas);
+
+                massive[i][j] = mas[size/2];
+            }
+        }
+    }
+
+    public void inversePixelGrayScale(double[][] massive)
+    {
+        for (int i = 0; i < massive.length; i++)
+        {
+            for (int j = 0; j < massive[0].length; j++)
+            {
+                massive[i][j] = Math.abs(255 - (massive[i][j]));
+            }
+        }
+    }
+    public void processImageANGSTR(BufferedImage bufferedImage)// стандарт с разверткой, с нормализации на длину волны
+    {
+        double[][] massive = null;
+        double[][] real = null;
+        double[][] image = null;
+
+
+
+        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+        massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
+
+//        int nn = 255;
+//        massive = new double[nn][nn];
+//        for (int i = 0; i < nn; i++)
+//        {
+//            for (int j = 0; j < nn; j++)
+//            {
+//                massive[i][j] = massiveImg[i][j];
+//            }
+//        }
+
+        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
+//        System.out.println("размер матрицы!"+ n + n);
+        real = new double[n][n];
+        image = new double[n][n];
+        tools.normalizeTo(massive, -Math.PI, Math.PI);
+        //   tools.writeMassiveToFile(massive, "src/main/resources/ConvertImg.txt");
+        // переводим массив изображения в комплексный вид
+        tools.convertToComplex(massive, real, image);   // делаем из массива изображения массив комплексных чисел
+
+        // производим прямой FFT
+        tools.FFT_2D(real, image, false);
+
+        // заполняем левую половину нулями
+        tools.fillLeftHalfOfImage(real, image, 0);
+
+        // производим обратное FFT
+        tools.FFT_2D(real, image, true);
+
+        // делим мнимую часть на действительную
+        tools.divideImageToReal(real, image, massive);
+
+
+
+        // считаем арктангенс
+        tools.atan(massive);
+        // tools.writeMassiveToFile(massive, "src/main/resources/image_atan_out.txt");    // записываем текстовый файл
+
+
+
+
+        // нормализуем изображение к значениям от -PI до +PI
+        tools.normalizeTo(massive, -Math.PI, Math.PI);
+
+        // делаем развёртку
+        tools.unwrapMassive(massive, loopsUnwrapCount);
+
+
+
+        //   удаляем тренд
+        tools.deleteTrend(massive, loopsDeleteTrendCount);
+
+
+        if (invert==true) {
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] = Math.abs(255 - (massive[i][j]));
+                }
+            }
+        }
+//           переводим в ангстремы
+        tools.convertToAngstroms(massive, waveLength);   // нужно переделать удаление тренда, появляются проблемы тут из-за этого
+
+        //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
+        tools.normalizeTo(massive, 0, 255);
+        // вывод в файл
+//        System.out.println("wh: " + massive.length + " " + massive[0].length);
+        setImageFromMassive(massive, bufferedImage);
+
+    }
+
+    public void processImageF(BufferedImage bufferedImage)// фазовая картинка без развертки
+    {
+        double[][] massive = null;
+        double[][] real = null;
+        double[][] image = null;
+
+
+        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+        massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
+
+//        int nn = 255;
+//        massive = new double[nn][nn];
+//        for (int i = 0; i < nn; i++)
+//        {
+//            for (int j = 0; j < nn; j++)
+//            {
+//                massive[i][j] = massiveImg[i][j];
+//            }
+//        }
+
+        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
+//        System.out.println("размер матрицы!"+ n + n);
+        real = new double[n][n];
+        image = new double[n][n];
+
+        // tools.writeMassiveToFile(massive, "src/main/resources/ConvertImg.txt");
+        // переводим массив изображения в комплексный вид
+        tools.convertToComplex(massive, real, image);   // делаем из массива изображения массив комплексных чисел
+
+        // производим прямой FFT
+        tools.FFT_2D(real, image, false);
+
+        // заполняем левую половину нулями
+        tools.fillLeftHalfOfImage(real, image, 0);
+
+        // производим обратное FFT
+        tools.FFT_2D(real, image, true);
+
+        // делим мнимую часть на действительную
+        tools.divideImageToReal(real, image, massive);
 
         // переводим в ангстремы
-        tools.convertToAngstroms(massive, waveLength);
+        // tools.convertToAngstroms(massive, waveLength);   // нужно переделать удаление тренда, появляются проблемы тут из-за этого
 
-        // удаляем тренд
-        tools.deleteTrend(massive);
+        // считаем арктангенс
+        tools.atan(massive);
+        tools.normalizeTo(massive, 0, 255);
+        if (invert==true) {
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] = Math.abs(255 - (massive[i][j]));
+                }
+            }
+        }
+        //  tools.writeMassiveToFile(massive, "src/main/resources/image_atan_out.txt");    // записываем текстовый файл
+
 
         // вывод в файл
 //        System.out.println("wh: " + massive.length + " " + massive[0].length);
         setImageFromMassive(massive, bufferedImage);
+
+    }
+    public void processImageTrend(BufferedImage bufferedImage) // фазовая картинка с разверткой, без удаления тренда
+    {
+        double[][] massive = null;
+        double[][] real = null;
+        double[][] image = null;
+
+
+        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+        massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
+
+//        int nn = 255;
+//        massive = new double[nn][nn];
+//        for (int i = 0; i < nn; i++)
+//        {
+//            for (int j = 0; j < nn; j++)
+//            {
+//                massive[i][j] = massiveImg[i][j];
+//            }
+//        }
+
+        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
+//        System.out.println("размер матрицы!"+ n + n);
+        real = new double[n][n];
+        image = new double[n][n];
+
+        //tools.writeMassiveToFile(massive, "src/main/resources/ConvertImg.txt");
+        // переводим массив изображения в комплексный вид
+        tools.convertToComplex(massive, real, image);   // делаем из массива изображения массив комплексных чисел
+
+        // производим прямой FFT
+        tools.FFT_2D(real, image, false);
+
+        // заполняем левую половину нулями
+        tools.fillLeftHalfOfImage(real, image, 0);
+
+        // производим обратное FFT
+        tools.FFT_2D(real, image, true);
+
+        // делим мнимую часть на действительную
+        tools.divideImageToReal(real, image, massive);
+
+
+
+        // считаем арктангенс
+        tools.atan(massive);
+        // tools.writeMassiveToFile(massive, "src/main/resources/image_atan_out.txt");    // записываем текстовый файл
+
+
+
+
+        // нормализуем изображение к значениям от -PI до +PI
+        tools.normalizeTo(massive, -Math.PI, Math.PI);
+
+        // делаем развёртку
+        tools.unwrapMassive(massive, loopsUnwrapCount);
+
+
+
+        //   удаляем тренд
+        // tools.deleteTrend(massive, loopsDeleteTrendCount);
+//        tools.deleteTrend3D(massive);
+        tools.normalizeTo(massive, 0, 255); //нужно проверить надобность
+
+        if (invert==true) {
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] = Math.abs(255 - (massive[i][j]));
+                }
+            }
+        }
+//           переводим в ангстремы
+//            tools.convertToAngstroms(massive, waveLength);   // нужно переделать удаление тренда, появляются проблемы тут из-за этого
+
+        // tools.writeMassiveToFile(massive, "src/main/resources/Final.txt");
+        // вывод в файл
+//        System.out.println("wh: " + massive.length + " " + massive[0].length);
+        setImageFromMassive(massive, bufferedImage);
+
+    }
+
+
+    public void processImageF_ANGSTR(BufferedImage bufferedImage)// фазовая картинка без развертки, с нормализации на длину волны
+    {
+        double[][] massive = null;
+        double[][] real = null;
+        double[][] image = null;
+
+
+        PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+
+        massive = tools.getImageMassive(bufferedImage);     // получаем массив пикселей изображения
+
+//        int nn = 255;
+//        massive = new double[nn][nn];
+//        for (int i = 0; i < nn; i++)
+//        {
+//            for (int j = 0; j < nn; j++)
+//            {
+//                massive[i][j] = massiveImg[i][j];
+//            }
+//        }
+
+        int n = getMatrixSizeForImage(massive);     // считаем размер для матрицы
+//        System.out.println("размер матрицы!"+ n + n);
+        real = new double[n][n];
+        image = new double[n][n];
+        tools.normalizeTo(massive, -Math.PI, Math.PI);
+        // tools.writeMassiveToFile(massive, "src/main/resources/ConvertImg.txt");
+        // переводим массив изображения в комплексный вид
+        tools.convertToComplex(massive, real, image);   // делаем из массива изображения массив комплексных чисел
+
+        // производим прямой FFT
+        tools.FFT_2D(real, image, false);
+
+        // заполняем левую половину нулями
+        tools.fillLeftHalfOfImage(real, image, 0);
+
+        // производим обратное FFT
+        tools.FFT_2D(real, image, true);
+
+        // делим мнимую часть на действительную
+        tools.divideImageToReal(real, image, massive);
+
+
+
+        // считаем арктангенс
+        tools.atan(massive);
+
+        tools.normalizeTo(massive, 0, 255);
+        if (invert==true) {
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] = Math.abs(255 - (massive[i][j]));
+                }
+            }
+        }
+        tools.writeMassiveToFile(massive, "src/main/resources/image_atan_out.txt");    // записываем текстовый файл
+        // переводим в ангстремы
+        tools.convertToAngstroms(massive, waveLength);   // нужно пероверить необходимость добавления перед инвертированием
+
+        // вывод в файл
+//        System.out.println("wh: " + massive.length + " " + massive[0].length);
+        setImageFromMassive(massive, bufferedImage);
+
     }
 
     public void onStart() throws IOException
@@ -596,13 +999,13 @@ public class PhaseMicroscopeTools
         return massive;
     }
 
-    public static void writeMassiveToFile(double[][] massive, int n, String fileName)
+    public void writeMassiveToFile(double[][] massive, String fileName)
     {
         try(FileWriter fileWriter = new FileWriter(new File(fileName)))
         {
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < massive.length; i++)
             {
-                for (int j = 0; j < n; j++)
+                for (int j = 0; j < massive[i].length; j++)
                 {
                     fileWriter.write(Double.toString(massive[i][j]) + "\t");
                 }
@@ -640,7 +1043,7 @@ public class PhaseMicroscopeTools
     {
         int k = 0;
         int n = massive.length;
-        double c = 0.7;
+
 
         double[] unwrapped = new double[n];
 
@@ -652,7 +1055,7 @@ public class PhaseMicroscopeTools
                 return unwrapped;
             }
             unwrapped[i] = massive[i] + (2 * Math.PI * k);
-            if(Math.abs(massive[i+1] - massive[i]) > (Math.PI * c))
+            if(Math.abs(massive[i+1] - massive[i]) > (Math.PI * Trash_hold))
             {
                 if(massive[i+1] < massive[i])
                 {
@@ -670,7 +1073,7 @@ public class PhaseMicroscopeTools
         return unwrapped;
     }
 
-    public void unwrapMassive(double[][] massive)
+    public void unwrapMassive(double[][] massive, int loopsUnwrapCount)
     {
         int width = massive.length;
         int height = massive[0].length;
@@ -685,7 +1088,10 @@ public class PhaseMicroscopeTools
                 row[x] = massive[x][y];
             }
 
-            row = unwrap2(row);   // выполняем развёртку столбца
+            for (int i = 0; i < loopsUnwrapCount; i++)
+            {
+                row = unwrap2(row);   // выполняем развёртку столбца
+            }
 
             for (int x = 0; x < width; x++)     // заполняем матрицу
             {
@@ -703,7 +1109,10 @@ public class PhaseMicroscopeTools
                 column[y] = massive[x][y];
             }
 
-            column = unwrap2(column);
+            for (int i = 0; i < loopsUnwrapCount; i++)
+            {
+                column = unwrap2(column);
+            }
 
             for (int y = 0; y < height; y++)
             {
@@ -929,40 +1338,51 @@ public class PhaseMicroscopeTools
             }
     }
 
-    public static void deleteTrend3D(double[][] massive) {
+    public void deleteTrend3D(double[][] massive) {
         int imgWidth = massive.length;
         int imgHeight = massive[0].length;
-        //определяем координаты 3-х точек плоскости
-        int x1 = 1;
-        int y1 = 1;
-        int z1 = (int) massive[x1][y1];
-        int x3 = imgWidth - 1;
-        int y3 = imgHeight - 1;
-        int z3 = (int) massive[x3][y3];
-        int x2 = imgWidth - 1;
-        int y2 = 1;
-        int z2 = (int) massive[x2][y2];
-        // Задание уравнения плоскости
-        int A = (y2 - y1) * (z3 - z1) - (z2 - z1) * (y3 - y1);
-        int B = (x2 - x1) * (z3 - z1) - (z2 - z1) * (x3 - x1);
-        int C = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
-        int D = -((A * x1) + (B * y1) + (C * z1));
+        //for (int a = 0; a < loopsDeleteTrendCount; a++) {
+            //определяем координаты 3-х точек плоскости
+            int x1 = deleteTrendX;
+            int y1 = deleteTrendY;
+            int z1 = (int) massive[0][0];
+            int x3 = imgWidth - 1;
+            int y3 = imgHeight - 1;
+            int z3 = (int) massive[x3][y3];
+            int x2 = imgWidth - 1;
+            int y2 = 0;
+            int z2 = (int) massive[x2][y2];
+            // Задание уравнения плоскости
+            int A = (y2 - y1) * (z3 - z1) - (z2 - z1) * (y3 - y1);
+            int B = (x2 - x1) * (z3 - z1) - (z2 - z1) * (x3 - x1);
+            int C = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
+            int D = -((A * x1) + (B * y1) + (C * z1));
 
-        A = A / 3;
-        B = B / 3;
-        C = C / 3;
-        D = D / 3;
+            A = A / 3;
+            B = B / 3;
+            C = C / 3;
+            D = D / 3;
 
-        // Cоздание массива корректирующей плоскости
-        for (int j = 0; j < imgHeight; j++) {
-            for (int i = 0; i < imgWidth; i++) {
+            // Cоздание массива корректирующей плоскости
+            double[][] datatrand = new double[imgWidth][imgHeight];
+            for (int j = 0; j < imgHeight; j++) {
+                for (int i = 0; i < imgWidth; i++) {
 
-                int Z = (B * j - A * i - D) / C;
-                massive[i][j] = Z;
+                    int Z = (B * j - A * i - D) / C;
+                    datatrand[i][j] = Z;
+                }
+            }
+
+            // double [][] massive = new double[imgWidth][imgHeight];
+            for (int j = 0; j < imgHeight; j++) {
+                for (int i = 0; i < imgWidth; i++) {
+
+
+                    massive[i][j] = massive[i][j] - datatrand[i][j];
+                }
             }
         }
-
-    }
+    //}
 
     public void FFT_2D(double[][] real, double[][] image, boolean inverse)
     {
@@ -1058,60 +1478,75 @@ public class PhaseMicroscopeTools
 //        writeMassiveToFile(massive, n, inputFileName + "_angstrem.txt");
     }
 
-    public void deleteTrend(double[][] massive)
+    public void deleteTrend(double[][] massive, int loopsDeleteTrendCount)
     {
         normalize(massive, 1, 1, massive.length-1, massive[0].length-1);
 
 //        writeMassiveToFile(massive, n, inputFileName + "_normalized.txt");
 
-        // конвертируем нормализованное значение в 0 - 255
-        for (int i = 0; i < massive.length; i++)
+        for (int a = 0; a < loopsDeleteTrendCount; a++)
         {
+            // конвертируем нормализованное значение в 0 - 255
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] *= 255;
+                }
+            }
+
+            // считаем каким должен быть градиент
+            final int width = massive.length;
+            final int height = massive[0].length;
+            double[] trendMassive = new double[width];
+            double[] trendMassiveH = new double[height];
+
+            for (int i = 0; i < width; i++)
+            {
+                double k = (((double)(width - 1 - i) / (double) (width - 1)));
+                trendMassive[i] = 255 * k;
+            }
+
+            for (int j= 0; j < height; j++)
+            {
+                double k1 = (((double)(height - 1 - j) / (double) (height - 1)));
+                trendMassiveH[j] = 255 * k1;
+            }
+
+            // вычитаем из градиента получившееся значение
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[i].length; j++)
+                {
+                    massive[i][j] =  trendMassive[i]-massive[i][j];
+//                    massive[i][j] =  trendMassiveH[j]- massive[i][j];
+                }
+            }
+
+
+
+
+            normalize(massive, 1, 1, massive.length-1, massive[0].length-1);
+
+            for (int i = 0; i < massive.length; i++)
+            {
+                for (int j = 0; j < massive[0].length; j++)
+                {
+                    massive[i][j] = Math.abs(255 - (massive[i][j] * 255));
+                }
+            }
+
+            // зануляем граничные значения
+            for (int i = 0; i < massive.length; i++)
+            {
+                massive[i][0] = 0;      // левая вертикальная линия
+                massive[i][massive[0].length-1] = 0;    // правая вертикальная линия
+            }
             for (int j = 0; j < massive[0].length; j++)
             {
-                massive[i][j] *= 255;
+                massive[0][j] = 0;      // верхняя горизонтальная линия
+                massive[massive.length-1][j] = 0;    // нижняя горизонтальная линия
             }
-        }
-
-        // считаем каким должен быть градиент
-        final int width = massive.length;
-        double[] trendMassive = new double[width];
-
-        for (int i = 0; i < width; i++)
-        {
-            double k = (((double)(width - 1 - i) / (double) (width - 1)));
-            trendMassive[i] = 255 * k;
-        }
-
-        // вычитаем из градиента получившееся значение
-        for (int i = 0; i < massive.length; i++)
-        {
-            for (int j = 0; j < massive[i].length; j++)
-            {
-                massive[i][j] = trendMassive[i] - massive[i][j];
-            }
-        }
-
-        normalize(massive, 1, 1, massive.length-1, massive[0].length-1);
-
-        for (int i = 0; i < massive.length; i++)
-        {
-            for (int j = 0; j < massive[0].length; j++)
-            {
-                massive[i][j] = Math.abs(255 - (massive[i][j] * 255));
-            }
-        }
-
-        // зануляем граничные значения
-        for (int i = 0; i < massive.length; i++)
-        {
-            massive[i][0] = 0;      // левая вертикальная линия
-            massive[i][massive[0].length-1] = 0;    // правая вертикальная линия
-        }
-        for (int j = 0; j < massive[0].length; j++)
-        {
-            massive[0][j] = 0;      // верхняя горизонтальная линия
-            massive[massive.length-1][j] = 0;    // нижняя горизонтальная линия
         }
     }
 }
