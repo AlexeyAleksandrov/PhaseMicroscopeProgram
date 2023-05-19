@@ -287,6 +287,7 @@ public class MainWindow
 
 
                 MassivesCount = (int) Real_spinnerlasMassivesCount.getValue();
+                PhaseMicroscopeTools.setLastMissivesCount(MassivesCount);
 
                 Slider.setValue((int) (Trash_hold * 100)); //не меняет ползунок
 

@@ -179,9 +179,9 @@ public class Application
                                             massive[i][j] *= (0.01 * waveLength); //нормализация на длину волны
                                         }
                                     }
-                                    if(medianF) {
-                                        tools.medianFilter(massive, medianCount);
-                                    }
+//                                    if(medianF) {
+//                                        tools.medianFilter(massive, medianCount);
+//                                    }
                                     File textFile = fileChooser.getSelectedFile().getName().endsWith(".jpg")
                                             ? fileChooser.getSelectedFile()
                                             : new File(fileChooser.getSelectedFile() + ".jpg");

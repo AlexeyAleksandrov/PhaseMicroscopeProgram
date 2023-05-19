@@ -3,14 +3,10 @@ package ru.phasemicroscope;
 import com.tambapps.fft4j.FastFourier2d;
 import com.tambapps.fft4j.Signal2d;
 import org.apache.commons.io.FileUtils;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 import ru.phasemicroscope.opencv.OpenCV;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -59,12 +55,12 @@ public class PhaseMicroscopeTools
     public static int loopsUnwrapCount=50;    // кол-во циклов развёртки
     public static  int loopsDeleteTrendCount = 4;
 
-    public static int lasMassivesCount = MassivesCount; //не работает
-    static double[][][] lastMassives = new double[lasMassivesCount][][];
+//    public static int lasMassivesCount = MassivesCount; //не работает
+    static double[][][] lastMassives = new double[MassivesCount][][];
 
     public void processImage(BufferedImage bufferedImage, boolean inversePixels) // стандарт с разверткой, без нормализации на длину волны
     {
-        System.out.println("количество фоток - " + lasMassivesCount + "количество со спинера" + MassivesCount);
+        //System.out.println("количество фоток - " + lasMassivesCount + "количество со спинера" + MassivesCount);
 //        for (int i=1;i==4;i++)
 //        {
         //System.out.println("Длина волны - " + waveLength);
@@ -223,12 +219,23 @@ public class PhaseMicroscopeTools
         }
     }
 
+    public static void setLastMissivesCount(int count)
+    {
+        lastMassives = new double[count][][];
+    }
+
     //  зануляем граничные значения
     public void subtraction(double[][] massive) {
-int n = 576;
+int n = massive.length-1;
         for (int i = 0; i < n; i++) {
-            massive[0][i] = massive[1][i];      //  левая вертикальная линия
-            massive[n][i] = massive[n - 1][i];    // правая вертикальная линия
+//            massive[0][i] = massive[1][i];      //  левая вертикальная линия
+//            massive[n][i] = massive[n - 1][i];    // правая вертикальная линия
+
+        }
+
+         n = massive[0].length-1;
+        for (int i = 0; i < n; i++) {
+
             massive[i][0] = massive[i][1];      // верхняя горизонтальная линия
             massive[i][n] = massive[i][n - 1];    // нижняя горизонтальная линия
         }
