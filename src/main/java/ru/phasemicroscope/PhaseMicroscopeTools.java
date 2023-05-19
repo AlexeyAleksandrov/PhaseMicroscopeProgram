@@ -27,7 +27,7 @@ public class PhaseMicroscopeTools
 {
     public static boolean enableCenterReverse = false;   // включить костыль с инверсией изображения относительно центра
     public static boolean enableLogarithmicScale = true;    // логарифмическое масштабирование для модуля значений пикселей после развёртки
-    public static int waveLength = 7920;
+    public static int waveLength = 7930;
 
     //  public static final double Trash_hold = 0.6;
 
@@ -59,11 +59,17 @@ public class PhaseMicroscopeTools
     public static int loopsUnwrapCount=50;    // кол-во циклов развёртки
     public static  int loopsDeleteTrendCount = 4;
 
+    public static int lasMassivesCount = MassivesCount; //не работает
+    static double[][][] lastMassives = new double[lasMassivesCount][][];
+
     public void processImage(BufferedImage bufferedImage, boolean inversePixels) // стандарт с разверткой, без нормализации на длину волны
     {
+        System.out.println("количество фоток - " + lasMassivesCount + "количество со спинера" + MassivesCount);
 //        for (int i=1;i==4;i++)
 //        {
         //System.out.println("Длина волны - " + waveLength);
+//        lastMassives = new double[lasMassivesCount][][];
+
         double[][] massive = null;
         double[][] real = null;
         double[][] image = null;
@@ -99,7 +105,14 @@ public class PhaseMicroscopeTools
         tools.FFT_2D(real, image, false);
 
         // заполняем левую половину нулями
-        tools.fillLeftHalfOfImage(real, image, 0);
+        if (HalfOfImage_V2) {
+            tools.fillLeftHalfOfImage_V2(real, image, 0);
+           // System.out.println("Удаление Гильбер фильтр 2 - ");
+        }
+        if (HalfOfImage_V2 == false) {
+            tools.fillLeftHalfOfImage(real, image, 0);
+           // System.out.println("Удаление Гильбер фильтр 1 - ");
+        }
 
         // производим обратное FFT
         tools.FFT_2D(real, image, true);
@@ -143,6 +156,65 @@ public class PhaseMicroscopeTools
         // tools.writeMassiveToFile(massive, "src/main/resources/Final.txt");
         // вывод в файл
 //        System.out.println("wh: " + massive.length + " " + massive[0].length);
+
+        // считаем среднее между последними кадрами
+
+        double[][] avgMassive = new double[massive.length][massive[0].length];
+        // заполняем нулями
+        for (int i = 0; i < avgMassive.length; i++)
+        {
+            for (int j = 0; j < avgMassive[i].length; j++)
+            {
+                avgMassive[i][j] = massive[i][j];
+            }
+        }
+
+        // считаем сумму
+        int countMassives = 1;  // изначально только исходный массив
+        for (int i = 0; i < lastMassives.length; i++)
+        {
+//            System.out.println("i = " + i + " massive = " + Arrays.deepToString(lastMassives[i]));
+            if(lastMassives[i] != null) // если массив существует
+            {
+                countMassives++;    // увеличиваем кол-во используемых массивов
+
+                for (int j = 0; j < lastMassives[i].length; j++)
+                {
+                    for (int k = 0; k < lastMassives[i][j].length; k++)
+                    {
+                        avgMassive[j][k] += lastMassives[i][j][k];
+                    }
+                }
+            }
+        }
+
+//        System.out.println("кол-во массивов: " + countMassives);
+
+        // считаем среднее
+        for (int i = 0; i < avgMassive.length; i++)
+        {
+            for (int j = 0; j < avgMassive[i].length; j++)
+            {
+                avgMassive[i][j] /= countMassives;
+            }
+        }
+
+        // сдвигаем массивы предыдущих кадров
+        for (int i = 1; i < lastMassives.length; i++)
+        {
+            lastMassives[i-1] = lastMassives[i];
+        }
+
+        // записываем в предыдущие текущий массив
+        lastMassives[lastMassives.length - 1] = massive;
+
+        // записываем получившийся массив как текущий
+        massive = avgMassive;
+
+//  зануляем граничные значения
+        subtraction(massive);
+
+
         setImageFromMassive(massive, bufferedImage);        // из массива создаем изображение
 
         if (medianF)
@@ -151,6 +223,16 @@ public class PhaseMicroscopeTools
         }
     }
 
+    //  зануляем граничные значения
+    public void subtraction(double[][] massive) {
+int n = 576;
+        for (int i = 0; i < n; i++) {
+            massive[0][i] = massive[1][i];      //  левая вертикальная линия
+            massive[n][i] = massive[n - 1][i];    // правая вертикальная линия
+            massive[i][0] = massive[i][1];      // верхняя горизонтальная линия
+            massive[i][n] = massive[i][n - 1];    // нижняя горизонтальная линия
+        }
+    }
     public void medianFilter(BufferedImage bufferedImage, int radius)
     {
         OpenCV openCV = new OpenCV();
@@ -1438,6 +1520,33 @@ public class PhaseMicroscopeTools
 
 //        writeMassiveToFile(real, n, inputFileName + "_real_after_mask.txt");
 //        writeMassiveToFile(image, n, inputFileName + "_image_after_mask.txt");
+    }
+
+    public void fillLeftHalfOfImage_V2(double[][] real, double[][] image, double value) {
+
+        int n = real.length;
+
+        // заполняем нулями в шахматном порядке
+
+        for (int x = n / 2; x < n; x++) {
+            for (int y = 0; y < n / 2; y++) {
+                if(x>=n/2) {
+                    real[x][y] = value;
+                    image[x][y] = value;
+                }
+            }
+            //if(y<=n/2 || x>=n/2)
+            for (int X = 0; X < n / 2; X++) {
+                for (int Y = n / 2; Y < n; Y++) {
+                    if(Y>=n/2) {
+                        real[X][Y] = value;
+                        image[X][Y] = value;
+                    }
+                }
+
+            }
+
+        }
     }
 
     public void divideImageToReal(double[][] real, double[][] image, double[][] massive)

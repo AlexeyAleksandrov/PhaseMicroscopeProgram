@@ -56,13 +56,74 @@ public class Application
                 {
                     openCV.captureFrame(matrix);   // делаем снимок с камеры
                     openCV.convertMatrixToBufferedImage(matrix, img);   // конвертируем в изображение
+                    if(mainWindow.oneCameraShot)    // если нужно сохранить снимок
+                    {
+
+                        try
+                        {
+
+                            double[][] massive = tools.getImageMassive(img);
+//                                System.out.println("Остановка видеопотока");
+//                                isVideoRunning = false;
+
+                            JFileChooser fileChooser = new JFileChooser();
+                            fileChooser.setDialogTitle("Specify a file to save");
+                            fileChooser.setName("decryptImage");
+                            fileChooser.setFileFilter(new FileFilter() {
+                                @Override
+                                public boolean accept(File file) {
+                                    if (file.getName().endsWith(".jpg")) {
+                                        return true;
+                                    }
+                                    return false;
+                                }
+
+                                @Override
+                                public String getDescription() {
+                                    return ".jpg";
+                                }
+                            });
+                            JFrame parentFrame = new JFrame();
+                            int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+                            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                                System.out.println("Запись файла...");
+                                ImageIO.write(img, "jpg",
+                                        fileChooser.getSelectedFile().getName().endsWith(".jpg")
+                                                ? fileChooser.getSelectedFile()
+                                                : new File(fileChooser.getSelectedFile() + ".jpg"));
+                                tools.convertToAngstroms(massive, waveLength);
+                                if(medianF) {
+                                    tools.medianFilter(massive, medianCount);
+                                }
+                                File textFile = fileChooser.getSelectedFile().getName().endsWith(".jpg")
+                                        ? fileChooser.getSelectedFile()
+                                        : new File(fileChooser.getSelectedFile() + ".jpg");
+
+                                String textFileName = textFile.getAbsolutePath().replace("jpg", "txt");
+                                tools.writeMassiveToFile(massive, textFileName);
+                                System.out.println("Файл записан");
+
+                                //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
+                                //    File fileToSave = fileChooser.getSelectedFile();
+                                //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+                            }
+                            //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
+//            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
+                        }
+                        catch (IOException e) //?
+                        {
+                            e.printStackTrace();
+                        }
+
+                        mainWindow.oneCameraShot = false;
+                    }
 
                     if(!mainWindow.showVideoOriginal)   // если не надо показывать оригинал
                     {
 
                         if (phase==false&&trend==false) {
                             tools.processImage(img, mainWindow.invert);
-
 
 
                         }
@@ -76,9 +137,11 @@ public class Application
 
                         if(mainWindow.oneCameraShot)    // если нужно сохранить снимок
                         {
+
                             try
                             {
-                                double[][] massive = tools.getImageMassive(img);
+
+                                    double[][] massive = tools.getImageMassive(img);
 //                                System.out.println("Остановка видеопотока");
 //                                isVideoRunning = false;
 
@@ -109,6 +172,13 @@ public class Application
                                                     ? fileChooser.getSelectedFile()
                                                     : new File(fileChooser.getSelectedFile() + ".jpg"));
                                     tools.convertToAngstroms(massive, waveLength);
+                                    for (int i = 0; i < massive.length; i++)
+                                    {
+                                        for (int j = 0; j < massive[i].length; j++)
+                                        {
+                                            massive[i][j] *= (0.01 * waveLength); //нормализация на длину волны
+                                        }
+                                    }
                                     if(medianF) {
                                         tools.medianFilter(massive, medianCount);
                                     }

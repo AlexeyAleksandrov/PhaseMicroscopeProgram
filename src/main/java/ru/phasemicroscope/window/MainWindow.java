@@ -33,6 +33,8 @@ public class MainWindow
     public static int Trash_hold_int;
     public static int REAL_WIDTH = 103;   // ширина кадра
     public static int REAL_HEIGHT = 58;  // высота кадра
+    public static int MassivesCount = 1;  // количество кадров
+
     public static boolean phase = false;
     public static boolean trend = false;
     public static double Trash_hold=0.6;
@@ -46,6 +48,8 @@ public class MainWindow
     public static int deleteTrendY;
     private int screenWidth = 1150;
     private int screenHeight = 800;
+
+    public static boolean HalfOfImage_V2 = false;
 
 //    JFrame parentFrame = new JFrame();
 //    JFileChooser fileChooser = new JFileChooser();
@@ -159,7 +163,7 @@ public class MainWindow
 ////////////////////////////////////////////////////////
 
 
-        ////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
         SpinnerModel Real_Weight =
                 new SpinnerNumberModel(REAL_WIDTH , ///информационный спиннер для установки действительной ширины кадра
                         0, //minimum value
@@ -241,6 +245,16 @@ public class MainWindow
         spinner_deleteTrendY.setBounds(100,100,50,30);
 
 ////////////////////////////////////////////////////////
+        SpinnerModel LasMassivesCount =
+                new SpinnerNumberModel(MassivesCount, //информационный спиннер для установки действительной высоты кадра
+                        0, //minimum value
+                        1000, //maximum value
+                        1); //step
+        JSpinner Real_spinnerlasMassivesCount = new JSpinner(LasMassivesCount);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        Real_spinnerlasMassivesCount.setBounds(100,100,50,30);
+////////////////////////////////////////////////////////
 
         // кнопка видеопоток
         JButton buttonVideo = new JButton("Видеопоток");
@@ -270,6 +284,9 @@ public class MainWindow
 
                 spinnerWeight.setValue(Integer.valueOf(INPUT_CAMERA_WIDTH));
                 spinnerHeight.setValue(Integer.valueOf(INPUT_CAMERA_HEIGHT));
+
+
+                MassivesCount = (int) Real_spinnerlasMassivesCount.getValue();
 
                 Slider.setValue((int) (Trash_hold * 100)); //не меняет ползунок
 
@@ -399,6 +416,23 @@ public class MainWindow
             }
         });
 
+
+
+        JButton buttonFillLeftHalfOfImage_V2 = new JButton("Смена типа фильтра");  // при нажатии загружаем параметры из файла
+        buttonFillLeftHalfOfImage_V2.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                HalfOfImage_V2 = !HalfOfImage_V2;
+                if (HalfOfImage_V2) {
+                    System.out.println("фильтр 2");
+                }
+                if (HalfOfImage_V2 == false) {
+                    System.out.println("фильтр 1");
+                }
+            }
+        });
+
         JLabel TrashHoldLabel = new JLabel("TrashHold"); // создаем лейбл трешхолда
          JLabel WavelengthLabel = new JLabel("Wavelength"); // создаем лейбл трешхолда
 
@@ -413,6 +447,7 @@ public class MainWindow
 
         JLabel deleteTrendXLabel = new JLabel("X");
         JLabel deleteTrendYLabel = new JLabel("Y");
+        JLabel MassivesCountLabel = new JLabel("количество фото");
         // layout - чтобы элементы не расползались
 
         FlowLayout FlowLayout = new FlowLayout();
@@ -421,6 +456,7 @@ public class MainWindow
         mainWindow.setLayout(FlowLayout );                 // задаем layout
         //  mainWindow.add(buttonImage, BorderLayout.BEFORE_LINE_BEGINS);   // добавляем кнопку обработки изображения
         mainWindow.add(buttonVideo, BorderLayout.AFTER_LINE_ENDS);      // добавляем кнопку обработки видеопотока
+        mainWindow.add(buttonFillLeftHalfOfImage_V2); // пререключатель типа фильтра
         mainWindow.add(imageLabel, BorderLayout.CENTER);    // задаем расположение по центру
         mainWindow.add(checkBoxVideo, BorderLayout.AFTER_LAST_LINE);      // добавляем переключатель режима видео
         mainWindow.add(checkBoxPhotoFromCamera, BorderLayout.BEFORE_FIRST_LINE);    // добавляем переключатель выбора изображения без/с удалением тренда
@@ -461,6 +497,9 @@ public class MainWindow
         mainWindow.add(Real_spinnerWeightLabel); // лейблы и спиннеры реального размера кадра
         mainWindow.add(Real_spinnerHeight);
         mainWindow.add(Real_spinnerHeightLabel);
+
+        mainWindow.add(Real_spinnerlasMassivesCount);// лейбл и спиннер количества фото
+        mainWindow.add(MassivesCountLabel);
 
 
         //  mainWindow.add(spinnerWeight);
