@@ -57,7 +57,7 @@ public class PhaseMicroscopeTools {
     public static int loopsDeleteTrendCount = 4;
 
     //    public static int lasMassivesCount = MassivesCount; //не работает
-    static double[][][] lastMassives = new double[MassivesCount][][];
+    static double[][][] lastMassives = new double[MassivesCount > 0 ? MassivesCount : 1][][];
 
     public double[][] processImage(BufferedImage bufferedImage, boolean inversePixels) // стандарт с разверткой, без нормализации на длину волны
     {
@@ -135,7 +135,10 @@ public class PhaseMicroscopeTools {
         // переводим в ангстремы
         tools.convertToAngstroms(massive, waveLength);   // нужно переделать удаление тренда, появляются проблемы тут из-за этого
 
-        calculateAvgFrame(massive);     // считаем среднее между последними кадрами
+        if(MassivesCount > 0)
+        {
+            calculateAvgFrame(massive);     // считаем среднее между последними кадрами
+        }
 
         // тут получается карта высот, далее делаем копию массива и формируем изображение
 
@@ -1209,9 +1212,9 @@ public class PhaseMicroscopeTools {
             {
                 for (int i = 0; i < h; i++)
                 {
-                    fileWriter.write(Double.toString(massive[i][j]) + ","); // было - "\t"
+                    fileWriter.write(Double.toString(massive[i][j]) + ((i != h-1) ? "," : "\r\n")); // было - "\t"
                 }
-                fileWriter.write("\r\n");
+//                fileWriter.write("\r\n");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

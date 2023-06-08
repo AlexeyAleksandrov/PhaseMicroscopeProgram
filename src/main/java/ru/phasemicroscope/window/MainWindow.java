@@ -396,6 +396,9 @@ public class MainWindow
                 spinnerloopsUnwrapC.setValue(Integer.valueOf(1));
 
 
+                Real_spinnerlasMassivesCount.setValue(Integer.valueOf(0));
+
+
 
 
 
