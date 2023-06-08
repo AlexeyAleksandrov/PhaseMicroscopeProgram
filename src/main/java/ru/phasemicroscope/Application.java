@@ -17,11 +17,9 @@ import static org.bytedeco.opencv.global.opencv_imgproc.medianBlur;
 import static ru.phasemicroscope.PhaseMicroscopeTools.waveLength;
 import static ru.phasemicroscope.window.MainWindow.*;
 
-public class Application
-{
+public class Application {
 
-    public static void main(String[] args) throws Exception
-    {
+    public static void main(String[] args) throws Exception {
         MainWindow mainWindow = new MainWindow();   // главное окно
         mainWindow.show();  // показываем окно
 
@@ -32,13 +30,9 @@ public class Application
         Thread appThread = new Thread(() ->
         {
             OpenCV openCV = new OpenCV();
-            try
-            {
+            try {
                 openCV.setVideoCaptureIndex(0);   // задаем номер камеры = 0
-            }
-
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
@@ -47,176 +41,219 @@ public class Application
 
             //        render.draw(img);  // рисуем
 
-            // рисуем постоянно видеопоток
-            while(mainWindow.isVisible())
-            {
-                PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+            int savedFramesCount = 0;   // на данный момент 0 сохранённых кадров
+            //  int MAX_SAVED_FRAMES_COUNT = streamCount;   // максимальное кол-во кадров, которое нужно сохранить, при достижении 150 следующие кадры не сохраняются
 
-                if(mainWindow.isVideoRunning)   // если видео должно идти
+            PhaseMicroscopeTools tools = new PhaseMicroscopeTools();
+            // рисуем постоянно видеопоток
+
+            String streamJpgFileName = "";
+            String streamCsvFileName = "";
+
+            long startTime = 0;
+
+            while (mainWindow.isVisible()) {
+
+
+                if (mainWindow.isVideoRunning)   // если видео должно идти
                 {
                     openCV.captureFrame(matrix);   // делаем снимок с камеры
                     openCV.convertMatrixToBufferedImage(matrix, img);   // конвертируем в изображение
-                    if(mainWindow.oneCameraShot)    // если нужно сохранить снимок
+
+                    if (!mainWindow.showVideoOriginal)   // если не надо показывать оригинал
                     {
 
-                        try
-                        {
+                        if (mainWindow.oneCameraShot) {  // если нужно сохранить снимок
 
-                            double[][] massive = tools.getImageMassive(img);
-//                                System.out.println("Остановка видеопотока");
-//                                isVideoRunning = false;
+                            if (!Stream) {
+                                {
+                                    {
 
-                            JFileChooser fileChooser = new JFileChooser();
-                            fileChooser.setDialogTitle("Specify a file to save");
-                            fileChooser.setName("decryptImage");
-                            fileChooser.setFileFilter(new FileFilter() {
-                                @Override
-                                public boolean accept(File file) {
-                                    if (file.getName().endsWith(".jpg")) {
-                                        return true;
+                                        try {
+
+                                            double[][] massive = tools.processImage(img, invert);   // обрабатыываем изображение с камеры, в massive находится массив высот
+                                            //                                System.out.println("Остановка видеопотока");
+                                            //                                isVideoRunning = false;
+
+                                            JFileChooser fileChooser = new JFileChooser();
+                                            fileChooser.setDialogTitle("Specify a file to save");
+                                            fileChooser.setName("decryptImage");
+                                            fileChooser.setFileFilter(new FileFilter() {
+                                                @Override
+                                                public boolean accept(File file) {
+                                                    if (file.getName().endsWith(".jpg")) {
+                                                        return true;
+                                                    }
+                                                    return false;
+                                                }
+
+                                                @Override
+                                                public String getDescription() {
+                                                    return ".jpg";
+                                                }
+                                            });
+                                            JFrame parentFrame = new JFrame();
+                                            int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+                                            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                                                System.out.println("Запись файла...");
+                                                ImageIO.write(img, "jpg",
+                                                        fileChooser.getSelectedFile().getName().endsWith(".jpg")
+                                                                ? fileChooser.getSelectedFile()
+                                                                : new File(fileChooser.getSelectedFile() + ".jpg"));
+
+//                                                tools.convertToAngstroms(massive, waveLength);
+
+                                                double min = massive[0][0];
+                                                for (int i = 0; i < massive.length; i++) {
+                                                    for (int j = 0; j < massive[i].length; j++) {
+
+                                                        if (massive[i][j] < min) {
+                                                            min = massive[i][j];
+                                                            // System.out.println("минимум - "+ min);
+
+                                                        }
+
+                                                    }
+                                                }
+                                                for (int i = 0; i < massive.length; i++) {
+                                                    for (int j = 0; j < massive[i].length; j++) {
+
+                                                        massive[i][j] = massive[i][j] - min;
+
+                                                    }
+                                                }
+
+
+
+                                                File textFile = fileChooser.getSelectedFile().getName().endsWith(".jpg")
+                                                        ? fileChooser.getSelectedFile()
+                                                        : new File(fileChooser.getSelectedFile() + ".jpg");
+
+                                                String textFileName = textFile.getAbsolutePath().replace("jpg", "csv");
+                                                tools.writeMassiveToFile(massive, textFileName);
+                                                System.out.println("Файл записан");
+
+                                                //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
+                                                //    File fileToSave = fileChooser.getSelectedFile();
+                                                //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+                                            }
+                                            //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
+                                            //            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
+                                        } catch (IOException e) //?
+                                        {
+                                            e.printStackTrace();
+                                        }
+
+                                        //       mainWindow.oneCameraShot = false;
+
                                     }
-                                    return false;
                                 }
-
-                                @Override
-                                public String getDescription() {
-                                    return ".jpg";
-                                }
-                            });
-                            JFrame parentFrame = new JFrame();
-                            int userSelection = fileChooser.showSaveDialog(parentFrame);
-
-                            if (userSelection == JFileChooser.APPROVE_OPTION) {
-                                System.out.println("Запись файла...");
-                                ImageIO.write(img, "jpg",
-                                        fileChooser.getSelectedFile().getName().endsWith(".jpg")
-                                                ? fileChooser.getSelectedFile()
-                                                : new File(fileChooser.getSelectedFile() + ".jpg"));
-                                tools.convertToAngstroms(massive, waveLength);
-                                if(medianF) {
-                                    tools.medianFilter(massive, medianCount);
-                                }
-                                File textFile = fileChooser.getSelectedFile().getName().endsWith(".jpg")
-                                        ? fileChooser.getSelectedFile()
-                                        : new File(fileChooser.getSelectedFile() + ".jpg");
-
-                                String textFileName = textFile.getAbsolutePath().replace("jpg", "txt");
-                                tools.writeMassiveToFile(massive, textFileName);
-                                System.out.println("Файл записан");
-
-                                //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
-                                //    File fileToSave = fileChooser.getSelectedFile();
-                                //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
-                            }
-                            //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
-//            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
+                            } //сохранение 1 кадра
                         }
-                        catch (IOException e) //?
-                        {
-                            e.printStackTrace();
-                        }
+                        else if (Stream && !mainWindow.oneCameraShot) {
 
-                        mainWindow.oneCameraShot = false;
-                    }
-
-                    if(!mainWindow.showVideoOriginal)   // если не надо показывать оригинал
-                    {
-
-                        if (phase==false&&trend==false) {
-                            tools.processImage(img, mainWindow.invert);
-
-
-                        }
-                        if (phase==true) {
-                            tools.processImageF(img);
-                        }
-
-                        if (trend==true) {
-                            tools.processImageTrend(img);
-                        }
-
-                        if(mainWindow.oneCameraShot)    // если нужно сохранить снимок
-                        {
-
-                            try
+                            if(savedFramesCount == 0)   // если мы только начинаем делать сохранение потока
                             {
-
-                                    double[][] massive = tools.getImageMassive(img);
-//                                System.out.println("Остановка видеопотока");
-//                                isVideoRunning = false;
-
                                 JFileChooser fileChooser = new JFileChooser();
                                 fileChooser.setDialogTitle("Specify a file to save");
                                 fileChooser.setName("decryptImage");
-                                fileChooser.setFileFilter(new FileFilter() {
-                                    @Override
-                                    public boolean accept(File file) {
-                                        if (file.getName().endsWith(".jpg")) {
-                                            return true;
-                                        }
-                                        return false;
-                                    }
 
-                                    @Override
-                                    public String getDescription() {
-                                        return ".jpg";
-                                    }
-                                });
                                 JFrame parentFrame = new JFrame();
                                 int userSelection = fileChooser.showSaveDialog(parentFrame);
 
                                 if (userSelection == JFileChooser.APPROVE_OPTION) {
-                                    System.out.println("Запись файла...");
-                                    ImageIO.write(img, "jpg",
-                                            fileChooser.getSelectedFile().getName().endsWith(".jpg")
-                                                    ? fileChooser.getSelectedFile()
-                                                    : new File(fileChooser.getSelectedFile() + ".jpg"));
-                                    tools.convertToAngstroms(massive, waveLength);
-                                    for (int i = 0; i < massive.length; i++)
-                                    {
-                                        for (int j = 0; j < massive[i].length; j++)
-                                        {
-                                            massive[i][j] *= (0.01 * waveLength); //нормализация на длину волны
-                                        }
-                                    }
-//                                    if(medianF) {
-//                                        tools.medianFilter(massive, medianCount);
-//                                    }
-                                    File textFile = fileChooser.getSelectedFile().getName().endsWith(".jpg")
-                                            ? fileChooser.getSelectedFile()
-                                            : new File(fileChooser.getSelectedFile() + ".jpg");
+                                    streamJpgFileName = fileChooser.getSelectedFile().getName().endsWith(".jpg")
+                                            ? fileChooser.getSelectedFile().getName()
+                                            : new File(fileChooser.getSelectedFile() + ".jpg").getAbsolutePath();
 
-                                    String textFileName = textFile.getAbsolutePath().replace("jpg", "txt");
-                                    tools.writeMassiveToFile(massive, textFileName);
-                                    System.out.println("Файл записан");
-
-                                    //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
-                                    //    File fileToSave = fileChooser.getSelectedFile();
-                                    //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+                                    streamCsvFileName = streamJpgFileName.replace("jpg", "csv");
                                 }
-                                //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
-//            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
-                            }
-                            catch (IOException e) //?
-                            {
-                                e.printStackTrace();
                             }
 
-                            mainWindow.oneCameraShot = false;
+                            // сохраняем кадры
+                            if (savedFramesCount < streamCount) {
+
+                                if(savedFramesCount == 0)
+                                {
+                                    startTime = System.nanoTime();
+                                }
+                                // сохраняем изображение кадра в JPG
+                                double[][] massive = tools.processImage(img, invert);   // обрабатыываем изображение с камеры, в massive находится массив высот
+                                //  tools.convertToAngstroms(massive, waveLength);
+                                //   double[][] min_massive = new double[massive.length][massive[0].length];
+                                double min = massive[0][0];
+
+                                for (int i = 0; i < massive.length; i++) {
+                                    for (int j = 0; j < massive[i].length; j++) {
+
+                                        if (massive[i][j] < min) {
+                                            min = massive[i][j];
+                                            // System.out.println("минимум - "+ min);
+
+                                        }
+
+                                    }
+                                }
+                                for (int i = 0; i < massive.length; i++) {
+                                    for (int j = 0; j < massive[i].length; j++) {
+
+                                        massive[i][j] = massive[i][j] - min;
+
+                                    }
+                                }
+
+                                String streamCsvFileNameSave = streamCsvFileName.replace(".csv", "_" + (savedFramesCount + 1) + ".csv");
+                                tools.writeMassiveToFile(massive, streamCsvFileNameSave);
+
+                                savedFramesCount++;     // кадр сохранён, увеличиваем значение счётчика
+
+                            }
+                            if (savedFramesCount == streamCount) {
+                                elapsed = (System.nanoTime() - startTime)/1000000;
+                                Stream = false;
+                                try {
+                                    streamJpgFileName = streamJpgFileName.replace(".jpg", "_" + (savedFramesCount) + ".jpg");
+                                    ImageIO.write(img, "jpg", new File(streamJpgFileName));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                                String valueFileName = new File(streamJpgFileName).getParent() + "\\value.txt";
+                                tools.ToFile(valueFileName);
+                                System.out.println("записано кадров - " + streamCount);
+                                savedFramesCount = 0;
+
+                            }
                         }
+                        else if (phase == false && trend == false) {
+                            tools.processImage(img, invert);
+
+
+                        }
+                        else if (phase) {
+                            tools.processImageF(img);
+                        }
+
+                        else if (trend) {
+                            tools.processImageTrend(img);
+                        }
+//                        mainWindow.oneCameraShot = false;
+                        //  Stream = false;
                         // tools.processImage(img);  // обрабатываем изображение
                     }
 
+
+
+                    mainWindow.oneCameraShot = false;
                     render.draw(img);  // рисуем
+
                 }
 
                 // делаем задержку
-                try
-                {
+                try {
                     Thread.sleep(17);
-                }
-                catch (InterruptedException e)
-                {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }

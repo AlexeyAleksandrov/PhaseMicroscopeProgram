@@ -1,0 +1,6 @@
+Time ms:0
+Quantity:2
+Algorythm: Hilbert
+Wavelegth:7920
+Threshold:60
+Delay: 100

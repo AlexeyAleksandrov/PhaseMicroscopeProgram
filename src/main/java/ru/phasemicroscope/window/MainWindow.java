@@ -37,16 +37,33 @@ public class MainWindow
 
     public static boolean phase = false;
     public static boolean trend = false;
+
     public static double Trash_hold=0.6;
+
+    public static long elapsed;
+
     public static boolean invert = false;
     public static boolean medianF = false;
+
+    public static boolean Stream = false;
+
     private JFrame frame;   // окно программы
     public static int medianCount = 3;
+
+    public static int streamCount;
 
     public static int deleteTrendX;
 
     public static int deleteTrendY;
-    private int screenWidth = 1150;
+
+    public static int deleteTrendX2 = INPUT_CAMERA_WIDTH;
+
+    public static int deleteTrendY2 = 0;
+
+    public static int deleteTrendX3 = INPUT_CAMERA_WIDTH;
+
+    public static int deleteTrendY3 = INPUT_CAMERA_HEIGHT;
+    private int screenWidth = 1300;
     private int screenHeight = 800;
 
     public static boolean HalfOfImage_V2 = false;
@@ -147,7 +164,7 @@ public class MainWindow
                         10000, //maximum value
                         1); //step
         JSpinner spinnerWeight = new JSpinner(Weight);
-    //    Weight.setValue("длина волны (А)");
+        //    Weight.setValue("длина волны (А)");
         // String[] label = {"длина волны (А) "};
         spinnerWeight.setBounds(100,100,50,30);
 ////////////////////////////////////////////////////////
@@ -223,7 +240,7 @@ public class MainWindow
         SpinnerModel delete_TrendX =
                 new SpinnerNumberModel(deleteTrendX, // для задания координаты Х при удалении тренда
                         0, //minimum value
-                        100, //maximum value
+                        INPUT_CAMERA_WIDTH, //maximum value
                         1); //step
         JSpinner spinner_deleteTrendX = new JSpinner(delete_TrendX);
         // spinner.setName("длина волны (А)");
@@ -231,13 +248,10 @@ public class MainWindow
         spinner_deleteTrendX.setBounds(100,100,50,30);
 
 ////////////////////////////////////////////////////////
-
-
-////////////////////////////////////////////////////////
         SpinnerModel delete_TrendY =
                 new SpinnerNumberModel(deleteTrendY, // для задания координаты Y при удалении тренда
                         0, //minimum value
-                        100, //maximum value
+                        INPUT_CAMERA_HEIGHT, //maximum value
                         1); //step
         JSpinner spinner_deleteTrendY = new JSpinner(delete_TrendY);
         // spinner.setName("длина волны (А)");
@@ -245,6 +259,56 @@ public class MainWindow
         spinner_deleteTrendY.setBounds(100,100,50,30);
 
 ////////////////////////////////////////////////////////
+
+        ////////////////////////////////////////////////////////
+        SpinnerModel delete_TrendX2 =
+                new SpinnerNumberModel(deleteTrendX2, // для задания координаты Х при удалении тренда
+                        0, //minimum value
+                        INPUT_CAMERA_WIDTH, //maximum value
+                        1); //step
+        JSpinner spinner_deleteTrendX2 = new JSpinner(delete_TrendX2);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        spinner_deleteTrendX2.setBounds(100,100,50,30);
+
+////////////////////////////////////////////////////////
+        SpinnerModel delete_TrendY2 =
+                new SpinnerNumberModel(deleteTrendY2, // для задания координаты Y при удалении тренда
+                        0, //minimum value
+                        INPUT_CAMERA_HEIGHT, //maximum value
+                        1); //step
+        JSpinner spinner_deleteTrendY2 = new JSpinner(delete_TrendY2);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        spinner_deleteTrendY2.setBounds(100,100,50,30);
+
+////////////////////////////////////////////////////////
+
+
+        ////////////////////////////////////////////////////////
+        SpinnerModel delete_TrendX3 =
+                new SpinnerNumberModel(deleteTrendX3, // для задания координаты Х при удалении тренда
+                        0, //minimum value
+                        INPUT_CAMERA_WIDTH, //maximum value
+                        1); //step
+        JSpinner spinner_deleteTrendX3 = new JSpinner(delete_TrendX3);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        spinner_deleteTrendX3.setBounds(100,100,50,30);
+
+////////////////////////////////////////////////////////
+        SpinnerModel delete_TrendY3 =
+                new SpinnerNumberModel(deleteTrendY3, // для задания координаты Y при удалении тренда
+                        0, //minimum value
+                        INPUT_CAMERA_HEIGHT, //maximum value
+                        1); //step
+        JSpinner spinner_deleteTrendY3 = new JSpinner(delete_TrendY3);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        spinner_deleteTrendY3.setBounds(100,100,50,30);
+
+////////////////////////////////////////////////////////
+
         SpinnerModel LasMassivesCount =
                 new SpinnerNumberModel(MassivesCount, //информационный спиннер для установки действительной высоты кадра
                         0, //minimum value
@@ -254,6 +318,16 @@ public class MainWindow
         // spinner.setName("длина волны (А)");
         // String[] label = {"длина волны (А) "};
         Real_spinnerlasMassivesCount.setBounds(100,100,50,30);
+////////////////////////////////////////////////////////
+        SpinnerModel videostream = new SpinnerNumberModel(streamCount, //спинер для задания кол-ва циклов развертки
+                        0, //minimum value
+                        1000, //maximum value
+                        1); //step
+        JSpinner Video_Stream = new JSpinner(videostream);
+        // spinner.setName("длина волны (А)");
+        // String[] label = {"длина волны (А) "};
+        Video_Stream.setBounds(100,100,50,30);
+
 ////////////////////////////////////////////////////////
 
         // кнопка видеопоток
@@ -276,6 +350,14 @@ public class MainWindow
 
                 deleteTrendX  = (int) spinner_deleteTrendX.getValue();
                 deleteTrendY  = (int) spinner_deleteTrendY.getValue();
+
+                deleteTrendX2  = (int) spinner_deleteTrendX2.getValue();
+                deleteTrendY2  = (int) spinner_deleteTrendY2.getValue();
+
+                deleteTrendX3  = (int) spinner_deleteTrendX3.getValue();
+                deleteTrendY3  = (int) spinner_deleteTrendY3.getValue();
+
+
                 loopsUnwrapCount = (int) spinnerloopsUnwrapC.getValue();
                 spinnerWaveLength.setValue(Integer.valueOf(waveLength));
 
@@ -291,7 +373,7 @@ public class MainWindow
 
                 Slider.setValue((int) (Trash_hold * 100)); //не меняет ползунок
 
-               // waveLength = (int) spinnerWaveLength.getValue();
+                // waveLength = (int) spinnerWaveLength.getValue();
                 REAL_WIDTH = (int) Real_spinnerWeight.getValue();
                 REAL_HEIGHT = (int) Real_spinnerHeight.getValue(); //не работает установка размера кадра, ничего не меняется
 //
@@ -301,6 +383,26 @@ public class MainWindow
 
             }
         });
+
+
+
+        JButton button_settingMode = new JButton("Режим настройки");
+        button_settingMode.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+
+
+                spinnerloopsUnwrapC.setValue(Integer.valueOf(1));
+
+
+
+
+
+            }
+        });
+
+
 
 
         JCheckBox checkBoxPhase = new JCheckBox("Фазовая картинка");
@@ -343,6 +445,19 @@ public class MainWindow
             }
         });
 
+        // кнопка запуска видеопотока
+        JButton buttonVideo_Stream = new JButton("Стрим");
+        buttonVideo_Stream.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+              //  videostream
+                        streamCount = (int) Video_Stream.getValue();
+                System.out.println("запуск видеопотока, количество кадров - " + streamCount);
+                Stream=!Stream;
+                ob_buttonPhoto_clicked();
+            }
+        });
 
         JButton buttonInvert = new JButton("Инвертировать");
         buttonInvert.addActionListener(new AbstractAction() {
@@ -395,7 +510,7 @@ public class MainWindow
             public void actionPerformed(ActionEvent e)
             {
 
-               // spinner_medianF_Count.setValue(medianCount);
+                // spinner_medianF_Count.setValue(medianCount);
                 if((medianCount%2)==0)
                 {
                     medianF_Count.setValue(medianCount+1); //РАБОТАЕТ С НАТЯЖКОЙ, НУЖНО СМОТРЕТЬ
@@ -435,7 +550,7 @@ public class MainWindow
         });
 
         JLabel TrashHoldLabel = new JLabel("TrashHold"); // создаем лейбл трешхолда
-         JLabel WavelengthLabel = new JLabel("Wavelength"); // создаем лейбл трешхолда
+        JLabel WavelengthLabel = new JLabel("Wavelength"); // создаем лейбл трешхолда
 
         JLabel spinnerWeightLabel = new JLabel("Weight"); // создаем лейбл ширины камеры
         JLabel spinnerHeightLabel = new JLabel("Height"); // создаем лейбл высоты камеры
@@ -446,18 +561,29 @@ public class MainWindow
         JLabel medianFLabel = new JLabel("Радиус фильтра"); // создаем лейбл Радиус медианного фильтра
         JLabel spinnerUnwrapCLabel = new JLabel("цикл развертки"); // создаем лейбл
 
-        JLabel deleteTrendXLabel = new JLabel("X");
-        JLabel deleteTrendYLabel = new JLabel("Y");
+        JLabel deleteTrendXLabel = new JLabel("X1");
+        JLabel deleteTrendYLabel = new JLabel("Y1");
+
+        JLabel deleteTrendXLabel2 = new JLabel("X2");
+        JLabel deleteTrendYLabel2 = new JLabel("Y2");
+
+        JLabel deleteTrendXLabel3 = new JLabel("X3");
+        JLabel deleteTrendYLabel3 = new JLabel("Y3");
+
+
         JLabel MassivesCountLabel = new JLabel("количество фото");
+
+        JLabel Video_StreamLabel = new JLabel("Колич. кадров стрима");
+
         // layout - чтобы элементы не расползались
 
         FlowLayout FlowLayout = new FlowLayout();
         Container mainWindow = frame.getContentPane();      // получаем область контента
 //        получаем область контента
         mainWindow.setLayout(FlowLayout );                 // задаем layout
-        //  mainWindow.add(buttonImage, BorderLayout.BEFORE_LINE_BEGINS);   // добавляем кнопку обработки изображения
+         // mainWindow.add(buttonImage, BorderLayout.BEFORE_LINE_BEGINS);   // добавляем кнопку обработки изображения
         mainWindow.add(buttonVideo, BorderLayout.AFTER_LINE_ENDS);      // добавляем кнопку обработки видеопотока
-        mainWindow.add(buttonFillLeftHalfOfImage_V2); // пререключатель типа фильтра
+          mainWindow.add(buttonFillLeftHalfOfImage_V2); // пререключатель типа фильтра (не работает)
         mainWindow.add(imageLabel, BorderLayout.CENTER);    // задаем расположение по центру
         mainWindow.add(checkBoxVideo, BorderLayout.AFTER_LAST_LINE);      // добавляем переключатель режима видео
         mainWindow.add(checkBoxPhotoFromCamera, BorderLayout.BEFORE_FIRST_LINE);    // добавляем переключатель выбора изображения без/с удалением тренда
@@ -468,6 +594,18 @@ public class MainWindow
         mainWindow.add(spinner_deleteTrendY);//коорд.нач. точки
         mainWindow.add(deleteTrendYLabel);
 
+        mainWindow.add(spinner_deleteTrendX2);//коорд. нач. точки
+        mainWindow.add(deleteTrendXLabel2);
+
+        mainWindow.add(spinner_deleteTrendY2);//коорд.нач. точки
+        mainWindow.add(deleteTrendYLabel2);
+
+        mainWindow.add(spinner_deleteTrendX3);//коорд. нач. точки
+        mainWindow.add(deleteTrendXLabel3);
+
+        mainWindow.add(spinner_deleteTrendY3);//коорд.нач. точки
+        mainWindow.add(deleteTrendYLabel3);
+
         mainWindow.add(checkBoxPhase); //переключение режима показа (фазовая картинка или развернутая фазовая картинка)
         mainWindow.add(buttonPhoto, BorderLayout.BEFORE_FIRST_LINE);  // кнопка снимока с камеры
         mainWindow.add(buttonInvert, BorderLayout.BEFORE_FIRST_LINE);  // кнопка инвертирования
@@ -477,10 +615,10 @@ public class MainWindow
         mainWindow.add(spinnerWaveLength);// СПИНЕР ДЛЯ ИЗМЕНЕНИЯ ДЛИНЫ ВОЛНЫ
         mainWindow.add(WavelengthLabel);// добавляем Label трешхолда
 
-        mainWindow.add(spinnerWeight);
-        mainWindow.add(spinnerWeightLabel); // лейблы и спиннеры для установки разрешения камеры
-        mainWindow.add(spinnerHeight);
-        mainWindow.add(spinnerHeightLabel);
+//        mainWindow.add(spinnerWeight);
+//        mainWindow.add(spinnerWeightLabel); // лейблы и спиннеры для установки разрешения камеры (не работает)
+//        mainWindow.add(spinnerHeight);
+//        mainWindow.add(spinnerHeightLabel);
 
         mainWindow.add(checkBoxMedianF);//добавляем переключаетль медианного фильтра
 
@@ -502,7 +640,12 @@ public class MainWindow
         mainWindow.add(Real_spinnerlasMassivesCount);// лейбл и спиннер количества фото
         mainWindow.add(MassivesCountLabel);
 
+        mainWindow.add(Video_Stream);// лейбл, спиннер, кнопка видеопотока
+        mainWindow.add(Video_StreamLabel);
+        mainWindow.add(buttonVideo_Stream);
 
+
+        mainWindow.add(button_settingMode);//кнопка режима настройки
         //  mainWindow.add(spinnerWeight);
         mainWindow.add(imageLabel, BorderLayout.CENTER);    // задаем расположение по центру
 
@@ -587,21 +730,33 @@ public class MainWindow
         else    // если из файла
         {
             String inputFileName = "src/main/resources/Snap";
-            String inputFileNFormat = ".bmp";
+            String inputFileNFormat = ".png";
             String imagePath = inputFileName + inputFileNFormat;
 
             // работаем с изображением
             // загружаем изображение
-            bufferedImage = tools.loadImage(imagePath);   // загружаем изображение
+           // bufferedImage = tools.loadImage(imagePath);   // загружаем изображение
 
             // обрабатываем изображение
-            tools.processImage(bufferedImage, invert);
+
+
+
+            // double[][] massive = new double[1000][1000];
+            double[][] massive = tools.getImageMassive(bufferedImage);
+             tools.processImageF_ANGSTR(bufferedImage, invert);
 
             try
             {
-                double[][] massive = tools.getImageMassive(bufferedImage);
-                tools.writeMassiveToFile(massive, inputFileName + "_out" + inputFileNFormat);    // записываем текстовый файл
+//                double[][] massive = tools.getImageMassive(bufferedImage);
+
+              //  tools.convertToAngstroms(massive, waveLength);
+                tools.writeMassiveToFile(massive, "src/main/resources/Camera_out.txt");    // записываем текстовый файл
+                tools.normalizeTo(massive, 0, 255); //нужно проверить
+                tools.setImageFromMassive(massive, bufferedImage);
+                // tools.writeMassiveToFile(massive, inputFileName + "_out" + inputFileNFormat);    // записываем текстовый файл
                 ImageIO.write(bufferedImage, "jpg", new File(inputFileName + "_out" + inputFileNFormat));
+//                tools.normalizeTo(massive, 0, 1); //нужно проверить
+
             }
             catch (IOException e)
             {
@@ -723,57 +878,57 @@ public class MainWindow
         JFileChooser fileChooser1 = new JFileChooser();
         fileChooser1.setDialogTitle("Specify a file to save");
         JFrame parentFrame1 = new JFrame();
-             int userSelection1 = fileChooser1.showSaveDialog(parentFrame1);
+        int userSelection1 = fileChooser1.showSaveDialog(parentFrame1);
 
-            if (userSelection1 == JFileChooser.APPROVE_OPTION) {
+        if (userSelection1 == JFileChooser.APPROVE_OPTION) {
 
-                File textFile = fileChooser1.getSelectedFile().getName().endsWith(".txt")
-                        ? fileChooser1.getSelectedFile()
-                        : new File(fileChooser1.getSelectedFile() + ".txt");
+            File textFile = fileChooser1.getSelectedFile().getName().endsWith(".txt")
+                    ? fileChooser1.getSelectedFile()
+                    : new File(fileChooser1.getSelectedFile() + ".txt");
 
-                String textFileName = textFile.getAbsolutePath().replace("txt", "txt");
+            String textFileName = textFile.getAbsolutePath().replace("txt", "txt");
 
-                try(FileWriter writer = new FileWriter(textFileName, false))
-                {
-                    // запись всей строки
-                    String text = String.valueOf(waveLength);
-                    writer.write(text);
-                    writer.append(' ');
-                 //  Trash_hold = Trash_hold * 100;
-                    Trash_hold_int = (int) (Trash_hold * 100);
-                    String text1 = String.valueOf(Trash_hold_int);
-                    writer.write(text1);
-                    writer.append(' ');
+            try(FileWriter writer = new FileWriter(textFileName, false))
+            {
+                // запись всей строки
+                String text = String.valueOf(waveLength);
+                writer.write(text);
+                writer.append(' ');
+                //  Trash_hold = Trash_hold * 100;
+                Trash_hold_int = (int) (Trash_hold * 100);
+                String text1 = String.valueOf(Trash_hold_int);
+                writer.write(text1);
+                writer.append(' ');
 
-                    String text2 = String.valueOf(INPUT_CAMERA_WIDTH);
-                    writer.write(text2);
-                    writer.append(' ');
+                String text2 = String.valueOf(INPUT_CAMERA_WIDTH);
+                writer.write(text2);
+                writer.append(' ');
 
-                    String text3 = String.valueOf(INPUT_CAMERA_HEIGHT);
-                    writer.write(text3);
-                    writer.append(' ');
+                String text3 = String.valueOf(INPUT_CAMERA_HEIGHT);
+                writer.write(text3);
+                writer.append(' ');
 
-                    String text4 = String.valueOf(REAL_WIDTH);
-                    writer.write(text4);
-                    writer.append(' ');
+                String text4 = String.valueOf(REAL_WIDTH);
+                writer.write(text4);
+                writer.append(' ');
 
-                    String text5 = String.valueOf(REAL_HEIGHT);
-                    writer.write(text5);
-                    writer.append(' ');
+                String text5 = String.valueOf(REAL_HEIGHT);
+                writer.write(text5);
+                writer.append(' ');
 
-                }
-                catch(IOException ex){
-
-                    System.out.println(ex.getMessage());
-                }
-                System.out.println("Файл записан");
-                //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
-                //    File fileToSave = fileChooser.getSelectedFile();
-                //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
             }
-            //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
-//            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
+            catch(IOException ex){
+
+                System.out.println(ex.getMessage());
+            }
+            System.out.println("Файл записан");
+            //   tools.writeMassiveToFile(massive, String.valueOf(fileChooser.getSelectedFile()));
+            //    File fileToSave = fileChooser.getSelectedFile();
+            //  System.out.println("Save as file: " + fileToSave.getAbsolutePath());
         }
+        //  tools.writeMassiveToFile(massive, "src/main/resources/photoFromCamera_out.txt");    // записываем текстовый файл
+//            ImageIO.write(bufferedImage, "jpg", new File("src/main/resources/photoFromCamera.jpg"));    // записываем изображение ??
+    }
 
     public void ob_buttonLoad_settings() {
         JFileChooser fileChooser1 = new JFileChooser();
@@ -795,7 +950,7 @@ public class MainWindow
                 for (String number : numbers) {
                     numbers_int[counter++] = Integer.parseInt(number);
 
-                   // numbers_int[counter++] = Double.parseDouble(number);
+                    // numbers_int[counter++] = Double.parseDouble(number);
 
                     System.out.println(Arrays.toString(numbers));
 
